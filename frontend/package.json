@@ -1,0 +1,45 @@
+{
+  "name": "vehicle-controller-test-frontend",
+  "version": "0.1.0",
+  "description": "车载控制器测试数据分析系统 - 前端应用",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
+  },
+  "dependencies": {
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.22.3",
+    "antd": "^5.16.1",
+    "@ant-design/icons": "^5.3.1",
+    "echarts": "^5.5.0",
+    "echarts-for-react": "^3.0.2",
+    "zustand": "^4.5.2",
+    "axios": "^1.6.8",
+    "dayjs": "^1.11.10"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "@typescript-eslint/eslint-plugin": "^7.7.1",
+    "@typescript-eslint/parser": "^7.7.1",
+    "@vitejs/plugin-react": "^4.2.1",
+    "@vitest/ui": "^1.6.0",
+    "@testing-library/react": "^14.3.1",
+    "@testing-library/jest-dom": "^6.4.2",
+    "@testing-library/user-event": "^14.5.2",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "typescript": "^5.4.5",
+    "vite": "^5.2.8",
+    "vitest": "^1.6.0",
+    "@vitest/coverage-v8": "^1.6.0"
+  }
+}
