@@ -1,0 +1,40 @@
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific
+data/raw/
+data/temp/
+*.log
+*.sqlite
+*.db
+
+# Exclude workspace root files
+../AGENTS.md
+../SOUL.md
+../USER.md
+../TOOLS.md
+../HEARTBEAT.md
+../.openclaw/
+../memory/
+../projects/
