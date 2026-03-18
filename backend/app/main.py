@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import engine, Base
 from app.api import projects, test_data, dbc, signal_mappings, custom_signals, test_cases, analysis, reports
+from app.api.routes import files, data_import
 
 # 创建数据库表
 Base.metadata.create_all(bind=engine)
@@ -34,6 +35,8 @@ app.include_router(custom_signals.router, prefix="/api", tags=["custom_signals"]
 app.include_router(test_cases.router, prefix="/api", tags=["test_cases"])
 app.include_router(analysis.router, prefix="/api", tags=["analysis"])
 app.include_router(reports.router, prefix="/api", tags=["reports"])
+app.include_router(files.router, tags=["files"])
+app.include_router(data_import.router, tags=["data_import"])
 
 
 @app.get("/")

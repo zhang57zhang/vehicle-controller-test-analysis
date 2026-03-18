@@ -1,0 +1,287 @@
+name: 车载控制器测试数据分析系统 - CI/CD
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:  # 允许手动触发
+
+jobs:
+  lint:
+    name: 代码风格检查
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Python 环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 安装依赖
+      run: |
+        cd backend
+        pip install flake8 black isort
+
+    - name: 运行 Flake8 检查
+      run: |
+        cd backend
+        # 停止构建如果存在 Python 语法错误或未定义的名称
+        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+        # 退出构建时将视为零，即使存在一些风格问题
+        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+    - name: 检查代码格式（Black）
+      run: |
+        cd backend
+        black --check app/ tests/
+
+    - name: 检查导入排序（isort）
+      run: |
+        cd backend
+        isort --check-only app/ tests/
+
+  test:
+    name: 运行测试
+    needs: lint
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Python ${{ matrix.python-version }} 环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: 缓存 pip 依赖
+      uses: actions/cache@v3
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('backend/pyproject.toml') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-${{ matrix.python-version }}-
+          ${{ runner.os }}-pip-
+
+    - name: 安装依赖
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install pytest pytest-cov pytest-html pytest-xdist requests openpyxl scipy
+
+    - name: 创建测试目录
+      run: |
+        mkdir -p backend/tests/test_data
+        mkdir -p backend/data
+        mkdir -p backend/uploads
+        mkdir -p backend/processed
+
+    - name: 运行单元测试
+      run: |
+        cd backend
+        pytest tests/ -m "not integration and not slow" -v --tb=short \
+          --cov=app --cov-report=xml --cov-report=term-missing \
+          --cov-report=html --junitxml=pytest-results.xml
+
+    - name: 上传测试结果
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results-${{ matrix.os }}-py${{ matrix.python-version }}
+        path: |
+          backend/pytest-results.xml
+          backend/htmlcov/
+          backend/.coverage
+        retention-days: 7
+
+    - name: 上传覆盖率到 Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      uses: codecov/codecov-action@v3
+      with:
+        files: backend/coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+        fail_ci_if_error: false
+
+    - name: 运行集成测试
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      run: |
+        cd backend
+        pytest tests/ -m "integration" -v --tb=short \
+          --cov=app --cov-append --cov-report=xml --cov-report=term-missing
+
+    - name: 检查测试覆盖率
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.11'
+      run: |
+        cd backend
+        # 检查覆盖率是否达标（例如至少 70%）
+        coverage report --fail-under=70 || echo "覆盖率低于 70%，请增加测试用例"
+
+  performance-test:
+    name: 性能测试
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Python 环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 安装依赖
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        pip install pytest pytest-benchmark
+
+    - name: 运行性能测试
+      run: |
+        cd backend
+        pytest tests/ -m "performance" -v --benchmark-only --benchmark-json=benchmark.json
+
+    - name: 保存性能测试结果
+      uses: actions/upload-artifact@v3
+      with:
+        name: performance-results
+        path: backend/benchmark.json
+
+  security-scan:
+    name: 安全扫描
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置 Python 环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: 安装依赖
+      run: |
+        cd backend
+        pip install bandit safety
+
+    - name: 运行 Bandit 安全扫描
+      run: |
+        cd backend
+        bandit -r app/ -f json -o bandit-report.json || true
+        bandit -r app/ -f txt
+
+    - name: 检查依赖安全漏洞
+      run: |
+        cd backend
+        pip install -r requirements.txt
+        safety check --json > safety-report.json || true
+        safety check
+
+    - name: 上传安全扫描报告
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: security-reports
+        path: |
+          backend/bandit-report.json
+          backend/safety-report.json
+
+  notify:
+    name: 发送通知
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: 检查工作流状态
+      run: |
+        if [ "${{ needs.test.result }}" == "failure" ]; then
+          echo "❌ 测试失败"
+          exit 1
+        elif [ "${{ needs.test.result }}" == "success" ]; then
+          echo "✅ 所有测试通过"
+          exit 0
+        else
+          echo "⚠️ 测试状态未知"
+          exit 1
+        fi
+
+    # 可选：配置邮件、Slack 或其他通知方式
+    # - name: 发送 Slack 通知
+    #   uses: slackapi/slack-github-action@v1
+    #   with:
+    #     webhook-url: ${{ secrets.SLACK_WEBHOOK_URL }}
+    #     payload: |
+    #       {
+    #         "text": "车载控制器测试数据分析系统 CI/CD",
+    #         "blocks": [
+    #           {
+    #             "type": "section",
+    #             "text": {
+    #               "type": "mrkdwn",
+    #               "text": "*测试状态*: ${{ needs.test.result }}\n*分支*: ${{ github.ref }}\n*提交*: ${{ github.sha }}"
+    #             }
+    #           }
+    #         ]
+    #       }
+
+  report:
+    name: 生成测试报告
+    needs: [test, security-scan]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 下载所有测试结果
+      uses: actions/download-artifact@v3
+      with:
+        path: all-results
+
+    - name: 生成测试汇总报告
+      run: |
+        echo "# 测试执行报告" > test_summary.md
+        echo "" >> test_summary.md
+        echo "**执行时间**: $(date)" >> test_summary.md
+        echo "**提交**: ${{ github.sha }}" >> test_summary.md
+        echo "**分支**: ${{ github.ref }}" >> test_summary.md
+        echo "" >> test_summary.md
+        echo "## 测试结果" >> test_summary.md
+        echo "" >> test_summary.md
+        echo "- **代码风格**: ${{ needs.lint.result }}" >> test_summary.md
+        echo "- **测试执行**: ${{ needs.test.result }}" >> test_summary.md
+        echo "- **安全扫描**: ${{ needs.security-scan.result }}" >> test_summary.md
+        echo "" >> test_summary.md
+
+    - name: 上传测试报告
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-summary-report
+        path: test_summary.md
+
+    - name: 注释 PR（如果是 PR 触发）
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v6
+      with:
+        script: |
+          const fs = require('fs');
+          const summary = fs.readFileSync('test_summary.md', 'utf8');
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: summary
+          })

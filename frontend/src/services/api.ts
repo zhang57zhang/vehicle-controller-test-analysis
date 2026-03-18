@@ -1,7 +1,7 @@
 import axios from 'axios'
-import type { Project, TestDataFile, DBCFile, SignalMapping, CustomSignal, TestCase, TestResult, ReportTemplate, Report } from '../types'
+import type { Project, TestDataFile, DBCFile, SignalMapping, CustomSignal, TestCase, ReportTemplate, Report } from '../types'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api'
+const API_BASE_URL = (import.meta as any).env.VITE_API_BASE_URL || 'http://localhost:8000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -95,6 +95,11 @@ export const dbcApi = {
   parseDBC: async (dbcId: string) => {
     const response = await api.post(`/dbc/${dbcId}/parse`)
     return response.data
+  },
+
+  // 删除DBC文件
+  deleteDBC: async (id: string) => {
+    await api.delete(`/dbc/${id}`)
   },
 }
 

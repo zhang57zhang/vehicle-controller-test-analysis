@@ -35,7 +35,7 @@ class TestDataFileBase(BaseModel):
     data_type: str
 
 
-class TestDataFileCreate(TestDataBase):
+class TestDataFileCreate(TestDataFileBase):
     pass
 
 
