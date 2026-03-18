@@ -1,0 +1,182 @@
+VERSION ""
+
+NS_ :
+	NS_DESC_
+		"Vehicle Controller Test Analysis"
+		HW_VENDOR			"Test"
+		SW_VENDOR			"Test"
+		APP_VENDOR			"Test"
+		SW_VERSION			"1.0"
+		DM_NAME				"VCU"
+		DATA_SIZE			DWORD
+		BIG_ENDIAN			FALSE
+	BASETYPE		(NS_BASETYPE	: (
+	))
+	BA_DEF_
+		BO_ 845 VCU_Data: 8 Vector__XXX
+	BA_DEF_DEF_
+		Vector__XXX 0
+	BA_DEF_
+		SG_ 845 Vehicle_Speed : 0|16@1 (+0.1)km/h ""
+	BA_DEF_DEF_
+		0|16@1 (+0.1)km/h ""
+	BA_DEF_
+		SG_ 845 Motor_Speed : 16|16@1 (+1)rpm ""
+	BA_DEF_DEF_
+		16|16@1 (+1)rpm ""
+	BA_DEF_
+		SG_ 845 Battery_Voltage : 32|16@1 (+0.1)V ""
+	BA_DEF_DEF_
+		32|16@1 (+0.1)V ""
+	BA_DEF_
+		SG_ 845 Temperature : 48|16@1 (+0.1)degC ""
+	BA_DEF_DEF_
+		48|16@1 (+0.1)degC ""
+	BA_DEF_
+		SG_ 845 VCU_Status : 64|8@1 (1) "VCU_Status_Enum"
+	BA_DEF_DEF_
+		1 "VCU_Status_Enum"
+	BA_DEF_
+		SG_ 845 BMS_Data : 72|8@1 (1) "BMS_Data_Enum"
+	BA_DEF_DEF_
+		1 "BMS_Data_Enum"
+	BA_DEF_
+		SG_ 845 Motor_Torque : 80|16@1 (+0.1)Nm ""
+	BA_DEF_DEF_
+		80|16@1 (+0.1)Nm ""
+	BA_DEF_
+		SG_ 845 MCU_Control : 96|8@1 (1) "MCU_Control_Enum"
+	BA_DEF_DEF_
+		1 "MCU_Control_Enum"
+	BA_DEF_
+		VAL_ 845 VCU_Status_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	BA_DEF_DEF_
+		VCU_Status_Enum 0 "OFF"
+	BA_DEF_
+		VAL_ 845 BMS_Data_Enum 0 "NORMAL" 1 "WARNING" 2 "ERROR"
+	BA_DEF_DEF_
+		BMS_Data_Enum 0 "NORMAL"
+	BA_DEF_
+		VAL_ 845 MCU_Control_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	BA_DEF_DEF_
+		MCU_Control_Enum 0 "OFF"
+	VAL_
+		845 VCU_Status_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	VAL_
+		845 BMS_Data_Enum 0 "NORMAL" 1 "WARNING" 2 "ERROR"
+	VAL_
+		845 MCU_Control_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	CM_
+		BO_ 845 VCU_Data:  Vector__XXX
+	CM_
+		SG_ 845 Vehicle_Speed:  Vector__XXX
+	CM_
+		SG_ 845 Motor_Speed:  Vector__XXX
+	CM_
+		SG_ 845 Battery_Voltage:  Vector__XXX
+	CM_
+		SG_ 845 Temperature:  Vector__XXX
+	CM_
+		SG_ 845 VCU_Status:  Vector__XXX
+	CM_
+		SG_ 845 BMS_Data:  Vector__XXX
+	CM_
+		SG_ 845 Motor_Torque:  Vector__XXX
+	CM_
+		SG_ 845 MCU_Control:  Vector__XXX
+	CM_
+		BA_DEF_ BO_ 845 "Test Description"
+		BA_DEF_DEF_ BO_ 845 "Test Description"
+	BA_DEF_
+		BO_ 846 BMS_Data: 8 Vector__XXX
+	BA_DEF_DEF_
+		Vector__XXX 0
+	BA_DEF_
+		SG_ 846 Battery_Voltage : 0|16@1 (+0.1)V ""
+	BA_DEF_DEF_
+		0|16@1 (+0.1)V ""
+	BA_DEF_
+		SG_ 846 BMS_Status : 16|8@1 (1) "BMS_Status_Enum"
+	BA_DEF_DEF_
+		1 "BMS_Status_Enum"
+	BA_DEF_
+		VAL_ 846 BMS_Status_Enum 0 "NORMAL" 1 "WARNING" 2 "ERROR"
+	BA_DEF_DEF_
+		BMS_Status_Enum 0 "NORMAL"
+	VAL_
+		846 BMS_Status_Enum 0 "NORMAL" 1 "WARNING" 2 "ERROR"
+	CM_
+		BO_ 846 BMS_Data:  Vector__XXX
+	CM_
+		SG_ 846 Battery_Voltage:  Vector__XXX
+	CM_
+		SG_ 846 BMS_Status:  Vector__XXX
+	CM_
+		BA_DEF_ BO_ 846 "BMS Test Data"
+		BA_DEF_DEF_ BO_ 846 "BMS Test Data"
+	BA_DEF_
+		BO_ 847 Motor_Data: 8 Vector__XXX
+	BA_DEF_DEF_
+		Vector__XXX 0
+	BA_DEF_
+		SG_ 847 Motor_Speed : 0|16@1 (+1)rpm ""
+	BA_DEF_DEF_
+		0|16@1 (+1)rpm ""
+	BA_DEF_
+		SG_ 847 Motor_Torque : 16|16@1 (+0.1)Nm ""
+	BA_DEF_DEF_
+		16|16@1 (+0.1)Nm ""
+	BA_DEF_
+		SG_ 847 Motor_Status : 32|8@1 (1) "Motor_Status_Enum"
+	BA_DEF_DEF_
+		1 "Motor_Status_Enum"
+	BA_DEF_
+		VAL_ 847 Motor_Status_Enum 0 "OFF" 1 "RUNNING" 2 "ERROR"
+	BA_DEF_DEF_
+		Motor_Status_Enum 0 "OFF"
+	VAL_
+		847 Motor_Status_Enum 0 "OFF" 1 "RUNNING" 2 "ERROR"
+	CM_
+		BO_ 847 Motor_Data:  Vector__XXX
+	CM_
+		SG_ 847 Motor_Speed:  Vector__XXX
+	CM_
+		SG_ 847 Motor_Torque:  Vector__XXX
+	CM_
+		SG_ 847 Motor_Status:  Vector__XXX
+	CM_
+		BA_DEF_ BO_ 847 "Motor Test Data"
+		BA_DEF_DEF_ BO_ 847 "Motor Test Data"
+	BA_DEF_
+		BO_ 848 MCU_Control: 8 Vector__XXX
+	BA_DEF_DEF_
+		Vector__XXX 0
+	BA_DEF_
+		SG_ 848 MCU_Command : 0|8@1 (1) "MCU_Command_Enum"
+	BA_DEF_DEF_
+		1 "MCU_Command_Enum"
+	BA_DEF_
+		SG_ 848 MCU_Status : 8|8@1 (1) "MCU_Status_Enum"
+	BA_DEF_DEF_
+		1 "MCU_Status_Enum"
+	BA_DEF_
+		VAL_ 848 MCU_Command_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	BA_DEF_DEF_
+		MCU_Command_Enum 0 "OFF"
+	BA_DEF_
+		VAL_ 848 MCU_Status_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	BA_DEF_DEF_
+		MCU_Status_Enum 0 "OFF"
+	VAL_
+		848 MCU_Command_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	VAL_
+		848 MCU_Status_Enum 0 "OFF" 1 "ON" 2 "ERROR"
+	CM_
+		BO_ 848 MCU_Control:  Vector__XXX
+	CM_
+		SG_ 848 MCU_Command:  Vector__XXX
+	CM_
+		SG_ 848 MCU_Status:  Vector__XXX
+	CM_
+		BA_DEF_ BO_ 848 "MCU Control Data"
+		BA_DEF_DEF_ BO_ 848 "MCU Control Data"
