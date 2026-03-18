@@ -1,46 +1,54 @@
 @echo off
 chcp 936 >nul
+title 车载控制器测试数据分析系统 - 停止服务
 
 echo ========================================
-echo   Vehicle Controller Test Analysis
-echo   Stop Services Script
+echo   车载控制器测试数据分析系统 - 停止服务
 echo ========================================
 echo.
 
-echo [Info] Finding and stopping services...
-echo.
-
-:: Stop backend service
-echo [Info] Checking backend service...
-tasklist /FI "IMAGENAME eq python.exe" 2>nul | find /I /N "python.exe" >nul
-if "%ERRORLEVEL%"=="0" (
-    echo [Stop] Found backend service, stopping...
-    taskkill /F /FI "WINDOWTITLE eq Backend Server*" 2>nul
-    timeout /t 1 /nobreak >nul
-    taskkill /F /IM python.exe /FI "WINDOWTITLE eq Backend Server*" 2>nul
-    echo [OK] Backend service stopped
+echo [停止] 正在停止Node.js服务...
+taskkill /F /IM node.exe >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [OK] Node.js服务已停止
 ) else (
-    echo [Info] No backend service found
+    echo [INFO] 未找到正在运行的Node.js进程
+)
+
+echo [停止] 正在停止Python服务...
+taskkill /F /IM python.exe >nul 2>&1
+if %errorlevel% equ 0 (
+    echo [OK] Python服务已停止
+) else (
+    echo [INFO] 未找到正在运行的Python进程
+)
+
+:: 检查端口占用情况
+echo.
+echo [检查] 检查端口占用状态：
+netstat -an | findstr :5173 >nul
+if %errorlevel% equ 0 (
+    echo [警告] 端口 5173 仍被占用，可能需要手动处理
+    echo [建议] 手动打开任务管理器结束相关进程
+) else (
+    echo [OK] 端口 5173 已释放
+)
+
+netstat -an | findstr :8000 >nul
+if %errorlevel% equ 0 (
+    echo [警告] 端口 8000 仍被占用，可能需要手动处理
+    echo [建议] 手动打开任务管理器结束相关进程
+) else (
+    echo [OK] 端口 8000 已释放
 )
 
 echo.
-
-:: Stop frontend service
-echo [Info] Checking frontend service...
-tasklist /FI "IMAGENAME eq node.exe" 2>nul | find /I /N "node.exe" >nul
-if "%ERRORLEVEL%"=="0" (
-    echo [Stop] Found frontend service, stopping...
-    taskkill /F /FI "WINDOWTITLE eq Frontend Server*" 2>nul
-    timeout /t 1 /nobreak >nul
-    taskkill /F /IM node.exe /FI "WINDOWTITLE eq Frontend Server*" 2>nul
-    echo [OK] Frontend service stopped
-) else (
-    echo [Info] No frontend service found
-)
-
+echo ========================================
+echo   服务停止完成！
+echo ========================================
 echo.
-echo ========================================
-echo   All Services Stopped
-echo ========================================
+echo [提示] 如需重新启动服务，请运行：
+echo   双击运行：前端启动.bat
+echo   双击运行：后端启动.bat
 echo.
 pause
