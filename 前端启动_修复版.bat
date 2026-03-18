@@ -4,7 +4,7 @@ title Frontend Launcher - Vehicle Test Analysis
 
 echo ========================================
 echo   Vehicle Controller Test Analysis
-echo   Frontend Launcher
+echo   Frontend Launcher (Fixed)
 echo ========================================
 echo.
 
@@ -36,7 +36,11 @@ if not exist "%FRONTEND_DIR%\package.json" (
 
 echo [Starting] Launching frontend service...
 cd /d "%FRONTEND_DIR%"
-start "Frontend Service" cmd /c "npx vite"
+echo [Info] Working directory: %CD%
+echo [Info] Executing: npx vite
+
+:: 启动服务（在新的命令提示符窗口中）
+start "Frontend Service" cmd /k "npx vite"
 
 timeout /t 3 /nobreak >nul
 
@@ -53,6 +57,7 @@ echo If not accessible, try:
 echo   1. Clear browser cache: Ctrl+Shift+R
 echo   2. Use Chrome or Edge browser
 echo   3. Check firewall settings
+echo   4. Wait 10-20 seconds for service to fully start
 echo.
 echo The service is running in a new window.
 echo Do not close that window for service to continue.
