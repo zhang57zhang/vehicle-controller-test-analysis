@@ -98,7 +98,16 @@ Write-Host "[信息] 前端服务已在后台启动" -ForegroundColor Green
 
 # 等待前端服务启动
 Write-Host "[等待] 前端服务启动中..." -ForegroundColor Yellow
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 5
+
+# 检查前端服务
+Write-Host "[检查] 检查前端服务..." -ForegroundColor Yellow
+try {
+    $response = Invoke-WebRequest -Uri "http://localhost:5173" -UseBasicParsing -TimeoutSec 3
+    Write-Host "[成功] 前端服务启动成功" -ForegroundColor Green
+} catch {
+    Write-Host "[警告] 前端服务可能未正常启动，请检查前端窗口" -ForegroundColor Yellow
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan

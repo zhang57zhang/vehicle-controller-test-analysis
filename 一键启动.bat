@@ -92,7 +92,18 @@ start "Frontend Server" cmd /c "cd /d "%FRONTEND_DIR%" && npm run dev"
 
 :: Wait for frontend service
 echo [Wait] Waiting for frontend service to start...
-timeout /t 3 /nobreak >nul
+timeout /t 5 /nobreak >nul
+
+:: Check frontend service
+echo [Check] Checking frontend service...
+timeout /t 2 /nobreak >nul
+for /f "tokens=5" %%a in ('netstat -a ^| find ":5173"') do (
+    if "%%a" == "LISTENING" (
+        echo [OK] Frontend service started successfully
+    ) else (
+        echo [Warning] Frontend service may not be running properly
+    )
+)
 
 echo.
 echo ========================================
