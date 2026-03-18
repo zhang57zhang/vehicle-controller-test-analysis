@@ -8,6 +8,9 @@ import * as api from '../services/api'
 const navigateMock = vi.fn()
 
 // Mock react-router-dom
+const mockUseNavigate = vi.fn()
+mockUseNavigate.mockReturnValue(navigateMock)
+
 vi.mock('react-router-dom', async () => {
   const actual = await vi.importActual('react-router-dom')
   return {
@@ -358,15 +361,6 @@ describe('ProjectManager', () => {
 
   describe('查看项目功能', () => {
     it('点击查看按钮应该导航到项目详情页', async () => {
-      const mockNavigate = vi.fn()
-      vi.mock('react-router-dom', async () => {
-        const actual = await vi.importActual('react-router-dom')
-        return {
-          ...actual,
-          useNavigate: () => mockNavigate,
-        }
-      })
-
       const mockProjects = [
         {
           id: '1',
@@ -390,7 +384,7 @@ describe('ProjectManager', () => {
       fireEvent.click(viewButton)
 
       await waitFor(() => {
-        expect(mockNavigate).toHaveBeenCalledWith('/projects/1')
+        expect(navigateMock).toHaveBeenCalledWith('/projects/1')
       })
     })
   })
