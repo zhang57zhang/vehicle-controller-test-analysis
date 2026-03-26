@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FileText, Download, FilePdfOutlined, FileWordOutlined, RefreshCw } from 'lucide-react'
+import { FileText, Download, FileDown, RefreshCw, File } from 'lucide-react'
 
 type ToastMessage = {
   type: 'success' | 'error'
@@ -379,7 +379,7 @@ const ReportGeneration: React.FC = () => {
                                 size="sm"
                                 onClick={() => handleDownloadReport(report.id, 'pdf')}
                               >
-                                <FilePdfOutlined className="mr-1 h-4 w-4" />
+                                <FileDown className="mr-1 h-4 w-4" />
                                 PDF
                               </Button>
                               <Button
@@ -387,7 +387,7 @@ const ReportGeneration: React.FC = () => {
                                 size="sm"
                                 onClick={() => handleDownloadReport(report.id, 'word')}
                               >
-                                <FileWordOutlined className="mr-1 h-4 w-4" />
+                                <File className="mr-1 h-4 w-4" />
                                 Word
                               </Button>
                             </div>
