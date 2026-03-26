@@ -1,5 +1,5 @@
 import { Layout as AntLayout, Menu, Breadcrumb, Dropdown, Avatar, Space } from 'antd'
-import { useNavigate, useLocation, useMatches } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import {
   DashboardOutlined,
   FolderOutlined,
@@ -19,7 +19,6 @@ const { Header, Sider, Content } = AntLayout
 const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const navigate = useNavigate()
   const location = useLocation()
-  const matches = useMatches()
 
   // 生成面包屑
   const generateBreadcrumbs = () => {
@@ -34,8 +33,7 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const breadcrumbs = [{ title: '首页' }]
 
     // 检查是否是项目详情页
-    const projectDetailMatch = matches.find((match) => match.pathname.includes('/projects/') && match.pathname.split('/').length === 3)
-    if (projectDetailMatch) {
+    if (location.pathname.startsWith('/projects/') && location.pathname.split('/').length === 3) {
       breadcrumbs.push({ title: breadcrumbMap['/projects'] || '项目管理' })
       breadcrumbs.push({ title: '项目详情' })
     } else {
