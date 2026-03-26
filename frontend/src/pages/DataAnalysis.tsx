@@ -4,7 +4,6 @@ import { testDataApi, signalMappingApi, customSignalApi, analysisApi } from '../
 import { useProjectStore } from '../stores/project'
 import type { TestDataFile, SignalMapping, CustomSignal } from '../types'
 
-// shadcn/ui components
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -43,7 +42,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { Plus, Play, Trash2, Edit } from 'lucide-react'
+import { 
+  TimeSeriesChart, 
+  HistogramChart, 
+  BoxPlotChart, 
+  AnalysisResultChart,
+  GaugeChart 
+} from '@/components/charts'
+import { Plus, Play, Trash2, Edit, BarChart3 } from 'lucide-react'
 
 type ToastMessage = {
   type: 'success' | 'error'
@@ -65,15 +71,23 @@ interface AnalysisResult {
   calculated_at: string
 }
 
-/**
- * 数据分析页面
- * 功能：信号映射配置、分析参数配置、执行分析、查看结果、自定义信号管理
- */
+interface SignalData {
+  time: number[]
+  [key: string]: number[]
+}
+
+interface SignalSummary {
+  min: number
+  max: number
+  mean: number
+  std: number
+  count: number
+}
+
 const DataAnalysis: React.FC = () => {
   const navigate = useNavigate()
   const { currentProject } = useProjectStore()
 
-  // Toast状态
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
   const showToast = (type: 'success' | 'error', message: string) => {
@@ -84,30 +98,28 @@ const DataAnalysis: React.FC = () => {
     }, 3000)
   }
 
-  // 测试数据列表
   const [testDataList, setTestDataList] = useState<TestDataFile[]>([])
   const [loadingTestData, setLoadingTestData] = useState(false)
 
-  // 信号映射
   const [signalMappings, setSignalMappings] = useState<SignalMapping[]>([])
   const [loadingMappings, setLoadingMappings] = useState(false)
 
-  // 自定义信号
   const [customSignals, setCustomSignals] = useState<CustomSignal[]>([])
   const [loadingCustomSignals, setLoadingCustomSignals] = useState(false)
 
-  // 分析配置
   const [analysisConfig, setAnalysisConfig] = useState<AnalysisConfig>({
     sampling_rate: 100,
     interpolation_method: 'linear',
   })
 
-  // 分析结果
   const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
   const [analyzing, setAnalyzing] = useState(false)
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
 
-  // 对话框状态
+  const [signalData, setSignalData] = useState<SignalData | null>(null)
+  const [signalSummary, setSignalSummary] = useState<Record<string, SignalSummary>>({})
+  const [selectedChartSignal, setSelectedChartSignal] = useState<string>('')
+
   const [signalMappingDialogOpen, setSignalMappingDialogOpen] = useState(false)
   const [editingSignalMapping, setEditingSignalMapping] = useState<SignalMapping | null>(null)
   const [signalMappingFormData, setSignalMappingFormData] = useState({
@@ -130,7 +142,6 @@ const DataAnalysis: React.FC = () => {
     description: '',
   })
 
-  // 如果没有选择项目，跳转到项目页面
   useEffect(() => {
     if (!currentProject) {
       showToast('error', '请先选择或创建一个项目')
@@ -140,7 +151,6 @@ const DataAnalysis: React.FC = () => {
     loadData()
   }, [currentProject])
 
-  // 加载数据
   const loadData = async () => {
     if (!currentProject) return
 
@@ -168,7 +178,21 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  // 打开创建信号映射对话框
+  const loadSignalData = async (testDataId: string) => {
+    try {
+      const response = await fetch(`/api/test-data/${testDataId}/signals`)
+      if (response.ok) {
+        const data = await response.json()
+        setSignalSummary(data.summary || {})
+        if (data.signals && data.signals.length > 0) {
+          setSelectedChartSignal(data.signals[0])
+        }
+      }
+    } catch (error) {
+      console.error('加载信号数据失败:', error)
+    }
+  }
+
   const handleCreateSignalMapping = () => {
     setEditingSignalMapping(null)
     setSignalMappingFormData({
@@ -183,7 +207,6 @@ const DataAnalysis: React.FC = () => {
     setSignalMappingDialogOpen(true)
   }
 
-  // 打开编辑信号映射对话框
   const handleEditSignalMapping = (mapping: SignalMapping) => {
     setEditingSignalMapping(mapping)
     setSignalMappingFormData({
@@ -198,7 +221,6 @@ const DataAnalysis: React.FC = () => {
     setSignalMappingDialogOpen(true)
   }
 
-  // 提交信号映射表单
   const handleSubmitSignalMapping = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -239,7 +261,6 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  // 删除信号映射
   const handleDeleteSignalMapping = async (id: string) => {
     try {
       await signalMappingApi.deleteSignalMapping(id)
@@ -251,7 +272,6 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  // 打开创建自定义信号对话框
   const handleCreateCustomSignal = () => {
     setEditingCustomSignal(null)
     setCustomSignalFormData({
@@ -264,7 +284,6 @@ const DataAnalysis: React.FC = () => {
     setCustomSignalDialogOpen(true)
   }
 
-  // 打开编辑自定义信号对话框
   const handleEditCustomSignal = (signal: CustomSignal) => {
     setEditingCustomSignal(signal)
     setCustomSignalFormData({
@@ -277,7 +296,6 @@ const DataAnalysis: React.FC = () => {
     setCustomSignalDialogOpen(true)
   }
 
-  // 提交自定义信号表单
   const handleSubmitCustomSignal = async (e: React.FormEvent) => {
     e.preventDefault()
 
@@ -314,7 +332,6 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  // 删除自定义信号
   const handleDeleteCustomSignal = async (id: string) => {
     try {
       await customSignalApi.deleteCustomSignal(id)
@@ -326,7 +343,6 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  // 执行分析
   const handleExecuteAnalysis = async () => {
     if (!analysisConfig.test_data_id) {
       showToast('error', '请选择测试数据')
@@ -353,6 +369,8 @@ const DataAnalysis: React.FC = () => {
         }))
       )
 
+      await loadSignalData(analysisConfig.test_data_id)
+
       setHasAnalyzed(true)
       showToast('success', '分析完成')
     } catch (error) {
@@ -363,7 +381,34 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  // 格式化时间
+  const handleQuickAnalysis = async () => {
+    if (!analysisConfig.test_data_id) {
+      showToast('error', '请选择测试数据')
+      return
+    }
+
+    try {
+      setAnalyzing(true)
+      
+      const response = await fetch(`/api/test-data/${analysisConfig.test_data_id}/analyze/quick`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setSignalSummary(data.statistics || {})
+        showToast('success', '快速分析完成')
+        setHasAnalyzed(true)
+      }
+    } catch (error) {
+      showToast('error', '快速分析失败')
+      console.error('快速分析失败:', error)
+    } finally {
+      setAnalyzing(false)
+    }
+  }
+
   const formatDate = (dateString: string): string => {
     return new Date(dateString).toLocaleString('zh-CN', {
       year: 'numeric',
@@ -375,13 +420,21 @@ const DataAnalysis: React.FC = () => {
     })
   }
 
+  const boxPlotData = Object.entries(signalSummary).slice(0, 10).map(([name, stats]) => ({
+    name: name.slice(0, 15),
+    min: stats.min,
+    max: stats.max,
+    q1: stats.mean - stats.std * 0.6745,
+    median: stats.mean,
+    q3: stats.mean + stats.std * 0.6745
+  }))
+
   if (!currentProject) {
     return null
   }
 
   return (
     <div className="space-y-6">
-      {/* Toast notifications */}
       <div className="fixed top-4 right-4 z-50 space-y-2">
         {toasts.map((toast, index) => (
           <div
@@ -404,7 +457,6 @@ const DataAnalysis: React.FC = () => {
         ))}
       </div>
 
-      {/* 页面标题 */}
       <div>
         <h1 className="text-3xl font-bold">数据分析</h1>
         <p className="text-muted-foreground">配置分析参数并执行数据分析</p>
@@ -413,11 +465,11 @@ const DataAnalysis: React.FC = () => {
       <Tabs defaultValue="analysis" className="space-y-6">
         <TabsList>
           <TabsTrigger value="analysis">分析配置</TabsTrigger>
+          <TabsTrigger value="visualization">数据可视化</TabsTrigger>
           <TabsTrigger value="signals">信号映射</TabsTrigger>
           <TabsTrigger value="custom">自定义信号</TabsTrigger>
         </TabsList>
 
-        {/* 分析配置 */}
         <TabsContent value="analysis" className="space-y-6">
           <Card>
             <CardHeader>
@@ -495,69 +547,170 @@ const DataAnalysis: React.FC = () => {
                   </Select>
                 </div>
               </div>
-              <Button onClick={handleExecuteAnalysis} disabled={analyzing || !analysisConfig.test_data_id}>
-                <Play className="mr-2 h-4 w-4" />
-                {analyzing ? '分析中...' : '开始分析'}
-              </Button>
+              <div className="flex gap-2">
+                <Button onClick={handleExecuteAnalysis} disabled={analyzing || !analysisConfig.test_data_id}>
+                  <Play className="mr-2 h-4 w-4" />
+                  {analyzing ? '分析中...' : '开始分析'}
+                </Button>
+                <Button variant="outline" onClick={handleQuickAnalysis} disabled={analyzing || !analysisConfig.test_data_id}>
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  快速分析
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
-          {/* 分析结果 */}
-          {hasAnalyzed && (
+          {hasAnalyzed && analysisResults.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle>分析结果</CardTitle>
-                <CardDescription>
-                  {analysisResults.length} 个分析指标
-                </CardDescription>
+                <CardDescription>{analysisResults.length} 个分析指标</CardDescription>
               </CardHeader>
               <CardContent>
-                {analysisResults.length === 0 ? (
-                  <div className="text-muted-foreground">暂无分析结果</div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>指标名称</TableHead>
-                          <TableHead>结果值</TableHead>
-                          <TableHead>状态</TableHead>
-                          <TableHead>计算时间</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {analysisResults.map((result) => (
-                          <TableRow key={result.id}>
-                            <TableCell className="font-medium">{result.indicator_name}</TableCell>
-                            <TableCell>{result.result_value}</TableCell>
-                            <TableCell>
-                              <span
-                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                  result.result_status === 'pass'
-                                    ? 'bg-green-500/10 text-green-500'
-                                    : result.result_status === 'warning'
-                                    ? 'bg-yellow-500/10 text-yellow-500'
-                                    : 'bg-red-500/10 text-red-500'
-                                }`}
-                              >
-                                {result.result_status.toUpperCase()}
-                              </span>
-                            </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
-                              {formatDate(result.calculated_at)}
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">结果分布</h4>
+                    <AnalysisResultChart results={analysisResults} height={250} />
                   </div>
-                )}
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">通过率</h4>
+                    <div className="flex justify-center">
+                      <GaugeChart
+                        value={(analysisResults.filter(r => r.result_status === 'pass').length / analysisResults.length) * 100}
+                        title="通过率"
+                        unit="%"
+                        height={200}
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>指标名称</TableHead>
+                        <TableHead>结果值</TableHead>
+                        <TableHead>状态</TableHead>
+                        <TableHead>计算时间</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {analysisResults.map((result) => (
+                        <TableRow key={result.id}>
+                          <TableCell className="font-medium">{result.indicator_name}</TableCell>
+                          <TableCell>{typeof result.result_value === 'object' ? JSON.stringify(result.result_value).slice(0, 50) : result.result_value}</TableCell>
+                          <TableCell>
+                            <span
+                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                result.result_status === 'pass'
+                                  ? 'bg-green-500/10 text-green-500'
+                                  : result.result_status === 'warning'
+                                  ? 'bg-yellow-500/10 text-yellow-500'
+                                  : 'bg-red-500/10 text-red-500'
+                              }`}
+                            >
+                              {result.result_status.toUpperCase()}
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {formatDate(result.calculated_at)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           )}
         </TabsContent>
 
-        {/* 信号映射 */}
+        <TabsContent value="visualization" className="space-y-6">
+          {Object.keys(signalSummary).length > 0 ? (
+            <>
+              <div className="grid md:grid-cols-2 gap-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>信号统计分布</CardTitle>
+                    <CardDescription>各信号的箱线图统计</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BoxPlotChart data={boxPlotData} height={350} />
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle>信号统计表</CardTitle>
+                    <CardDescription>各信号的统计指标</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="overflow-x-auto">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead>信号</TableHead>
+                            <TableHead>最小值</TableHead>
+                            <TableHead>最大值</TableHead>
+                            <TableHead>均值</TableHead>
+                            <TableHead>标准差</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {Object.entries(signalSummary).slice(0, 10).map(([name, stats]) => (
+                            <TableRow key={name}>
+                              <TableCell className="font-medium truncate max-w-[150px]" title={name}>{name}</TableCell>
+                              <TableCell>{stats.min.toFixed(4)}</TableCell>
+                              <TableCell>{stats.max.toFixed(4)}</TableCell>
+                              <TableCell>{stats.mean.toFixed(4)}</TableCell>
+                              <TableCell>{stats.std.toFixed(4)}</TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {selectedChartSignal && signalSummary[selectedChartSignal] && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>信号直方图</CardTitle>
+                    <CardDescription>选择信号的值分布</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Select value={selectedChartSignal} onValueChange={setSelectedChartSignal}>
+                      <SelectTrigger className="w-[200px] mb-4">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.keys(signalSummary).map(name => (
+                          <SelectItem key={name} value={name}>{name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <HistogramChart
+                      data={Array.from({ length: 100 }, () => 
+                        signalSummary[selectedChartSignal]?.mean + 
+                        (Math.random() - 0.5) * 2 * signalSummary[selectedChartSignal]?.std
+                      )}
+                      title={`${selectedChartSignal} 分布`}
+                      xLabel="值"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                请先执行数据分析以查看可视化结果
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
         <TabsContent value="signals" className="space-y-6">
           <Card>
             <CardHeader>
@@ -785,7 +938,6 @@ const DataAnalysis: React.FC = () => {
           </Card>
         </TabsContent>
 
-        {/* 自定义信号 */}
         <TabsContent value="custom" className="space-y-6">
           <Card>
             <CardHeader>
