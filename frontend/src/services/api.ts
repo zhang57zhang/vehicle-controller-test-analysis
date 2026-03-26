@@ -238,9 +238,12 @@ export const reportApi = {
 
   // 生成报告
   generateReport: async (testDataId: string, options: {
-    templateId: string
+    templateId?: string
     reportType: 'standard' | 'traceability'
     format?: 'pdf' | 'word'
+    author?: string
+    reviewer?: string
+    approver?: string
   }) => {
     const response = await api.post<Report>(`/test-data/${testDataId}/reports/generate`, options)
     return response.data

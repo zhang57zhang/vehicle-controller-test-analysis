@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { FileText, Download, FileDown, RefreshCw, File } from 'lucide-react'
+import { FileText, FileDown, RefreshCw, File } from 'lucide-react'
 
 type ToastMessage = {
   type: 'success' | 'error'
@@ -31,7 +31,7 @@ type ToastMessage = {
 }
 
 interface Report {
-  id: number
+  id: string
   report_number: string
   report_type: string
   report_date: string
@@ -130,7 +130,7 @@ const ReportGeneration: React.FC = () => {
     }
   }
   
-  const handleDownloadReport = async (reportId: number, format: 'pdf' | 'word') => {
+  const handleDownloadReport = async (reportId: string, format: 'pdf' | 'word') => {
     try {
       const blob = await reportApi.downloadReport(String(reportId), format)
       
@@ -148,16 +148,6 @@ const ReportGeneration: React.FC = () => {
       showToast('error', '报告下载失败')
       console.error('报告下载失败:', error)
     }
-  }
-  
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
   }
   
   if (!currentProject) {

@@ -548,10 +548,7 @@ export function GaugeChart({
       axisLine: {
         lineStyle: {
           width: 15,
-          color: thresholds.map((t, i) => {
-            const prevValue = i > 0 ? thresholds[i - 1].value : min
-            return [t.value / max, t.color]
-          })
+          color: thresholds.map((t) => [t.value / max, t.color])
         }
       },
       pointer: {

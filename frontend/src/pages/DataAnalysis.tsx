@@ -43,7 +43,6 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { 
-  TimeSeriesChart, 
   HistogramChart, 
   BoxPlotChart, 
   AnalysisResultChart,
@@ -69,11 +68,6 @@ interface AnalysisResult {
   result_value: number | string
   result_status: 'pass' | 'warning' | 'fail'
   calculated_at: string
-}
-
-interface SignalData {
-  time: number[]
-  [key: string]: number[]
 }
 
 interface SignalSummary {
@@ -116,7 +110,6 @@ const DataAnalysis: React.FC = () => {
   const [analyzing, setAnalyzing] = useState(false)
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
 
-  const [signalData, setSignalData] = useState<SignalData | null>(null)
   const [signalSummary, setSignalSummary] = useState<Record<string, SignalSummary>>({})
   const [selectedChartSignal, setSelectedChartSignal] = useState<string>('')
 
