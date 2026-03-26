@@ -676,12 +676,4 @@ export function AnalysisResultChart({
   )
 }
 
-export {
-  TimeSeriesChart,
-  HistogramChart,
-  BoxPlotChart,
-  ScatterChart,
-  CorrelationHeatmap,
-  GaugeChart,
-  AnalysisResultChart
-}
+
