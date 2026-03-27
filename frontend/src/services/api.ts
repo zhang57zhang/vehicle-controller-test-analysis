@@ -175,6 +175,25 @@ export const analysisApi = {
     const response = await api.get(`/test-data/${testDataId}/analysis-results`)
     return response.data
   },
+
+  getAvailableSignals: async (testDataId: ID) => {
+    const response = await api.get(`/test-data/${testDataId}/signals`)
+    return response.data
+  },
+
+  getSignalTimeSeries: async (testDataId: ID, signalNames: string[], options?: {
+    startTime?: number
+    endTime?: number
+    maxPoints?: number
+  }) => {
+    const response = await api.post(`/test-data/${testDataId}/signal-timeseries`, {
+      signal_names: signalNames,
+      start_time: options?.startTime,
+      end_time: options?.endTime,
+      max_points: options?.maxPoints
+    })
+    return response.data
+  }
 }
 
 // 报告API

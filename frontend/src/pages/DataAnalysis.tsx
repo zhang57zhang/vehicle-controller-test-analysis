@@ -48,7 +48,8 @@ import {
   AnalysisResultChart,
   GaugeChart 
 } from '@/components/charts'
-import { Plus, Play, Trash2, Edit, BarChart3 } from 'lucide-react'
+import Oscilloscope from '@/components/Oscilloscope'
+import { Plus, Play, Trash2, Edit, BarChart3, Activity } from 'lucide-react'
 
 type ToastMessage = {
   type: 'success' | 'error'
@@ -112,6 +113,13 @@ const DataAnalysis: React.FC = () => {
 
   const [signalSummary, setSignalSummary] = useState<Record<string, SignalSummary>>({})
   const [selectedChartSignal, setSelectedChartSignal] = useState<string>('')
+  const [availableSignals, setAvailableSignals] = useState<string[]>([])
+  const [oscilloscopeData, setOscilloscopeData] = useState<{
+    time: number[]
+    signals: Record<string, number[]>
+    statistics: Record<string, SignalSummary>
+  } | null>(null)
+  const [loadingOscilloscope, setLoadingOscilloscope] = useState(false)
 
   const [signalMappingDialogOpen, setSignalMappingDialogOpen] = useState(false)
   const [editingSignalMapping, setEditingSignalMapping] = useState<SignalMapping | null>(null)
@@ -177,12 +185,48 @@ const DataAnalysis: React.FC = () => {
       if (response.ok) {
         const data = await response.json()
         setSignalSummary(data.summary || {})
+        setAvailableSignals(data.signals || [])
         if (data.signals && data.signals.length > 0) {
           setSelectedChartSignal(data.signals[0])
         }
       }
     } catch (error) {
       console.error('加载信号数据失败:', error)
+    }
+  }
+
+  const loadOscilloscopeData = async (testDataId: number) => {
+    if (availableSignals.length === 0) {
+      try {
+        const data = await analysisApi.getAvailableSignals(testDataId)
+        setAvailableSignals(data.signals || [])
+        setSignalSummary(data.summary || {})
+      } catch (error) {
+        console.error('加载信号列表失败:', error)
+        return
+      }
+    }
+
+    try {
+      setLoadingOscilloscope(true)
+      const signalsToLoad = availableSignals.length > 0 ? availableSignals : Object.keys(signalSummary)
+      if (signalsToLoad.length === 0) {
+        showToast('error', '没有可用的信号数据')
+        return
+      }
+      
+      const result = await analysisApi.getSignalTimeSeries(testDataId, signalsToLoad.slice(0, 50), {
+        maxPoints: 10000
+      })
+      
+      if (result.status === 'success' && result.data) {
+        setOscilloscopeData(result.data)
+      }
+    } catch (error) {
+      showToast('error', '加载示波器数据失败')
+      console.error('加载示波器数据失败:', error)
+    } finally {
+      setLoadingOscilloscope(false)
     }
   }
 
@@ -458,6 +502,7 @@ const DataAnalysis: React.FC = () => {
       <Tabs defaultValue="analysis" className="space-y-6">
         <TabsList>
           <TabsTrigger value="analysis">分析配置</TabsTrigger>
+          <TabsTrigger value="oscilloscope">示波器</TabsTrigger>
           <TabsTrigger value="visualization">数据可视化</TabsTrigger>
           <TabsTrigger value="signals">信号映射</TabsTrigger>
           <TabsTrigger value="custom">自定义信号</TabsTrigger>
@@ -613,6 +658,58 @@ const DataAnalysis: React.FC = () => {
                     </TableBody>
                   </Table>
                 </div>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        <TabsContent value="oscilloscope" className="space-y-6">
+          {!analysisConfig.test_data_id ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                请先在"分析配置"中选择测试数据
+              </CardContent>
+            </Card>
+          ) : loadingOscilloscope ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <div className="flex items-center justify-center gap-2">
+                  <Activity className="h-4 w-4 animate-pulse" />
+                  正在加载示波器数据...
+                </div>
+              </CardContent>
+            </Card>
+          ) : oscilloscopeData && Object.keys(oscilloscopeData.signals).length > 0 ? (
+            <Card className="h-[calc(100vh-280px)]">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Activity className="h-4 w-4" />
+                  信号示波器
+                </CardTitle>
+                <CardDescription>
+                  显示 {Object.keys(oscilloscopeData.signals).length} 个信号 | 
+                  时间范围: {oscilloscopeData.time.length > 0 ? 
+                    `${oscilloscopeData.time[0].toFixed(3)}s - ${oscilloscopeData.time[oscilloscopeData.time.length-1].toFixed(3)}s` : 
+                    'N/A'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-80px)]">
+                <Oscilloscope data={oscilloscopeData} />
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <div className="text-muted-foreground mb-4">
+                  点击下方按钮加载示波器数据
+                </div>
+                <Button
+                  onClick={() => loadOscilloscopeData(analysisConfig.test_data_id!)}
+                  disabled={loadingOscilloscope}
+                >
+                  <Activity className="mr-2 h-4 w-4" />
+                  加载示波器数据
+                </Button>
               </CardContent>
             </Card>
           )}

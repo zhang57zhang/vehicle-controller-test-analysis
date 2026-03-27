@@ -6,6 +6,7 @@
 
 import logging
 import json
+import numpy as np
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -481,6 +482,97 @@ def merge_multiple_data(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to merge data: {str(e)}",
+        )
+
+
+class SignalTimeSeriesRequest(BaseModel):
+    signal_names: List[str]
+    start_time: Optional[float] = None
+    end_time: Optional[float] = None
+    max_points: Optional[int] = 5000
+
+
+@router.post("/test-data/{test_data_id}/signal-timeseries")
+def get_signal_timeseries(
+    test_data_id: int, request: SignalTimeSeriesRequest, db: Session = Depends(get_db)
+):
+    """
+    获取信号的时序数据用于示波器显示
+
+    Args:
+        test_data_id: 测试数据文件ID
+        request: 信号时序请求
+
+    Returns:
+        信号时序数据
+    """
+    try:
+        test_data = db.query(TestDataFileModel).filter(TestDataFileModel.id == test_data_id).first()
+
+        if not test_data:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Test data file with id {test_data_id} not found",
+            )
+
+        engine = AnalysisEngine()
+        file_type = get_file_type(test_data.file_name)
+        engine.load_data(test_data.file_path, file_type)
+
+        time_data = None
+        if engine.time_column and engine.time_column in engine.signals:
+            time_data = engine.signals[engine.time_column]
+        else:
+            max_len = max(len(v) for v in engine.signals.values()) if engine.signals else 0
+            time_data = np.arange(max_len)
+
+        result_data = {"time": time_data.tolist(), "signals": {}, "statistics": {}}
+
+        for signal_name in request.signal_names:
+            if signal_name in engine.signals:
+                signal_data = engine.signals[signal_name]
+
+                valid_mask = np.ones(len(signal_data), dtype=bool)
+                if request.start_time is not None and len(time_data) == len(signal_data):
+                    valid_mask &= time_data >= request.start_time
+                if request.end_time is not None and len(time_data) == len(signal_data):
+                    valid_mask &= time_data <= request.end_time
+
+                filtered_time = (
+                    time_data[valid_mask] if len(time_data) == len(valid_mask) else time_data
+                )
+                filtered_data = signal_data[valid_mask]
+
+                if request.max_points and len(filtered_data) > request.max_points:
+                    step = len(filtered_data) // request.max_points
+                    filtered_data = filtered_data[::step]
+                    filtered_time = filtered_time[::step]
+
+                result_data["signals"][signal_name] = filtered_data.tolist()
+
+                valid_values = signal_data[~np.isnan(signal_data.astype(float))]
+                if len(valid_values) > 0:
+                    result_data["statistics"][signal_name] = {
+                        "min": float(np.min(valid_values)),
+                        "max": float(np.max(valid_values)),
+                        "mean": float(np.mean(valid_values)),
+                        "std": float(np.std(valid_values)),
+                        "count": len(valid_values),
+                    }
+
+        result_data["time"] = (
+            result_data["time"][: len(list(result_data["signals"].values())[0])]
+            if result_data["signals"]
+            else result_data["time"]
+        )
+
+        return {"status": "success", "test_data_id": test_data_id, "data": result_data}
+
+    except Exception as e:
+        logger.error(f"Error getting signal timeseries: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get signal timeseries: {str(e)}",
         )
 
 
