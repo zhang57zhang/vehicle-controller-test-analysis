@@ -53,7 +53,7 @@ const ProjectDetail: React.FC = () => {
     }
   }
 
-  const handleDeleteTestData = async (testDataId: string) => {
+  const handleDeleteTestData = async (testDataId: number) => {
     try {
       await testDataApi.deleteTestData(testDataId)
       message.success('删除成功')
@@ -66,7 +66,7 @@ const ProjectDetail: React.FC = () => {
     }
   }
 
-  const handleDeleteDBC = async (dbcId: string) => {
+  const handleDeleteDBC = async (dbcId: number) => {
     try {
       await dbcApi.deleteDBC?.(dbcId)
       message.success('删除成功')

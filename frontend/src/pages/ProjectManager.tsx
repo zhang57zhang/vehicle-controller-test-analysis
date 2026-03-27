@@ -128,7 +128,7 @@ const ProjectManager: React.FC = () => {
   }
 
   // 删除项目
-  const handleDelete = async (id: string, name: string) => {
+  const handleDelete = async (id: number, name: string) => {
     try {
       await projectApi.deleteProject(id)
       removeProject(id)
@@ -297,7 +297,7 @@ const ProjectManager: React.FC = () => {
                         {formatDate(project.created_at)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
-                        {formatDate(project.updated_at)}
+                        {project.updated_at ? formatDate(project.updated_at) : '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

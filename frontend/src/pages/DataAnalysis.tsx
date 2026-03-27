@@ -254,7 +254,7 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  const handleDeleteSignalMapping = async (id: string) => {
+  const handleDeleteSignalMapping = async (id: number) => {
     try {
       await signalMappingApi.deleteSignalMapping(id)
       showToast('success', '信号映射删除成功')
@@ -325,7 +325,7 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  const handleDeleteCustomSignal = async (id: string) => {
+  const handleDeleteCustomSignal = async (id: number) => {
     try {
       await customSignalApi.deleteCustomSignal(id)
       showToast('success', '自定义信号删除成功')
@@ -488,7 +488,7 @@ const DataAnalysis: React.FC = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {testDataList.map((data) => (
-                      <SelectItem key={data.id} value={data.id}>
+                      <SelectItem key={data.id} value={String(data.id)}>
                         {data.file_name} ({data.format.toUpperCase()}, {data.data_type})
                       </SelectItem>
                     ))}

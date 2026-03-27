@@ -1,11 +1,11 @@
 // 项目相关类型
 export interface Project {
-  id: string
+  id: number
   name: string
   description?: string
   dbc_file?: string
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 // 测试数据类型
@@ -24,8 +24,8 @@ export interface TestDataType {
 }
 
 export interface TestDataFile {
-  id: string
-  project_id: string
+  id: number
+  project_id: number
   file_name: string
   file_path: string
   file_size: number
@@ -36,8 +36,8 @@ export interface TestDataFile {
 
 // DBC相关类型
 export interface DBCFile {
-  id: string
-  project_id: string
+  id: number
+  project_id: number
   file_name: string
   file_path: string
   version?: string
@@ -45,8 +45,8 @@ export interface DBCFile {
 }
 
 export interface SignalMapping {
-  id: string
-  project_id: string
+  id: number
+  project_id: number
   signal_alias: string
   dbc_signal?: string
   data_source_signal?: string
@@ -59,8 +59,8 @@ export interface SignalMapping {
 }
 
 export interface CustomSignal {
-  id: string
-  project_id: string
+  id: number
+  project_id: number
   signal_alias: string
   calculation: string
   input_signals: string[]
@@ -70,6 +70,8 @@ export interface CustomSignal {
 
 // 测试用例类型
 export interface TestCase {
+  id?: number
+  project_id?: number
   tc_id: string
   tc_name: string
   test_phase: 'MIL' | 'HIL' | 'DVP' | 'VEHICLE' | 'MANUAL' | 'AUTO'
@@ -77,19 +79,22 @@ export interface TestCase {
   test_steps?: string
   expected_result?: string
   priority?: 'High' | 'Medium' | 'Low'
+  version?: string
+  author?: string
+  status?: string
+  created_at?: string
 }
 
 export interface TestResult {
-  id: string
-  test_data_file_id: string
+  id: number
+  test_data_file_id: number
   tc_id: string
+  tc_name?: string
   result: 'PASS' | 'FAIL' | 'BLOCKED'
   signal_name?: string
-  measured_value?: number
-  expected_range?: {
-    min: number
-    max: number
-  }
+  measured_value?: string
+  expected_min?: string
+  expected_max?: string
   notes?: string
   executed_at: string
 }
@@ -114,24 +119,24 @@ export interface Indicator {
 }
 
 export interface AnalysisResult {
-  id: string
-  test_data_file_id: string
+  id: number
+  test_data_file_id: number
   indicator_id: string
-  result_value: number | string
-  result_status: 'pass' | 'warning' | 'fail'
+  result_value: number | string | object
+  result_status: 'pass' | 'warning' | 'fail' | 'error'
   notes?: string
   calculated_at: string
 }
 
 // 报告相关类型
 export interface ReportTemplate {
-  id: string
+  id: number
   template_name: string
   template_type: 'full' | 'oem'
   oem_id?: string
   sections: ReportSection[]
   created_at: string
-  updated_at: string
+  updated_at?: string
 }
 
 export interface ReportSection {
@@ -150,10 +155,10 @@ export interface ReportField {
 }
 
 export interface Report {
-  id: string
-  report_template_id: string
-  test_data_file_id: string
-  project_id: string
+  id: number
+  report_template_id: number
+  test_data_file_id: number
+  project_id: number
   report_type: 'standard' | 'traceability'
   report_number: string
   report_date: string

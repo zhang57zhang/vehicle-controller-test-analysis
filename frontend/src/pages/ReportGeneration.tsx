@@ -31,7 +31,7 @@ type ToastMessage = {
 }
 
 interface Report {
-  id: string
+  id: number
   report_number: string
   report_type: string
   report_date: string
@@ -130,7 +130,7 @@ const ReportGeneration: React.FC = () => {
     }
   }
   
-  const handleDownloadReport = async (reportId: string, format: 'pdf' | 'word') => {
+  const handleDownloadReport = async (reportId: number, format: 'pdf' | 'word') => {
     try {
       const blob = await reportApi.downloadReport(String(reportId), format)
       

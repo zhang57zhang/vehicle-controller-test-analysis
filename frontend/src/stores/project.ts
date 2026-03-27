@@ -9,7 +9,7 @@ interface ProjectState {
   setProjects: (projects: Project[]) => void
   addProject: (project: Project) => void
   updateProject: (project: Project) => void
-  removeProject: (id: string) => void
+  removeProject: (id: number) => void
 }
 
 export const useProjectStore = create<ProjectState>()(

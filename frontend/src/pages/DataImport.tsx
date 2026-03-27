@@ -237,7 +237,7 @@ const DataImport: React.FC = () => {
   }
 
   // 删除测试数据文件
-  const handleDeleteTestData = async (id: string, fileName: string) => {
+  const handleDeleteTestData = async (id: number, fileName: string) => {
     try {
       await testDataApi.deleteTestData(id)
       showToast('success', `${fileName} 删除成功`)
@@ -249,7 +249,7 @@ const DataImport: React.FC = () => {
   }
 
   // 删除DBC文件
-  const handleDeleteDBC = async (id: string, fileName: string) => {
+  const handleDeleteDBC = async (id: number, fileName: string) => {
     try {
       await dbcApi.deleteDBC(id)
       showToast('success', `${fileName} 删除成功`)
