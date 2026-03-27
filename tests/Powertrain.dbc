@@ -201,5 +201,5 @@ VAL_ 768 ContactorState 0 "Open" 1 "Precharge" 2 "Closed" 3 "Welded" ;
 
 VAL_ 1024 DCDC_State 0 "Off" 1 "Init" 2 "Working" 3 "Fault" ;
 
-BA_DEF_ SG_  GenSigStartValue FLOAT 0 0;
-BA_DEF_DEF_  GenSigStartValue 0;
+BA_DEF_ SG_ "GenSigStartValue" FLOAT 0 0;
+BA_DEF_DEF_ "GenSigStartValue" 0;
