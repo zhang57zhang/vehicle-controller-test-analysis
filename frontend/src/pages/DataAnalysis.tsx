@@ -196,26 +196,48 @@ const DataAnalysis: React.FC = () => {
   }
 
   const loadOscilloscopeData = async (testDataId: number) => {
-    if (availableSignals.length === 0) {
-      try {
-        const data = await analysisApi.getAvailableSignals(testDataId)
-        setAvailableSignals(data.signals || [])
-        setSignalSummary(data.summary || {})
-      } catch (error) {
-        console.error('加载信号列表失败:', error)
-        return
-      }
-    }
-
     try {
       setLoadingOscilloscope(true)
+      
+      if (availableSignals.length === 0) {
+        try {
+          const data = await analysisApi.getAvailableSignals(testDataId)
+          setAvailableSignals(data.signals || [])
+          setSignalSummary(data.summary || {})
+        } catch (error) {
+          console.error('加载信号列表失败:', error)
+          return
+        }
+      }
+
       const signalsToLoad = availableSignals.length > 0 ? availableSignals : Object.keys(signalSummary)
       if (signalsToLoad.length === 0) {
         showToast('error', '没有可用的信号数据')
         return
       }
-      
+
       const result = await analysisApi.getSignalTimeSeries(testDataId, signalsToLoad.slice(0, 50), {
+        maxPoints: 10000
+      })
+
+      if (result.status === 'success' && result.data) {
+        setOscilloscopeData(result.data)
+      }
+    } catch (error) {
+      showToast('error', '加载示波器数据失败')
+      console.error('加载示波器数据失败:', error)
+    } finally {
+      setLoadingOscilloscope(false)
+    }
+  }
+      }
+
+      if (signalsToLoad.length === 0) {
+        showToast('error', '没有可用的信号数据')
+        return
+      }
+      
+      const result = await analysisApi.getSignalTimeSeries(testDataId, signalsToLoad, {
         maxPoints: 10000
       })
       

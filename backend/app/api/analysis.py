@@ -519,6 +519,12 @@ def get_signal_timeseries(
         file_type = get_file_type(test_data.file_name)
         engine.load_data(test_data.file_path, file_type)
 
+        if not engine.signals:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No signals found in the test data file",
+            )
+
         time_data = None
         if engine.time_column and engine.time_column in engine.signals:
             time_data = engine.signals[engine.time_column]
@@ -526,11 +532,20 @@ def get_signal_timeseries(
             max_len = max(len(v) for v in engine.signals.values()) if engine.signals else 0
             time_data = np.arange(max_len)
 
+        if not request.signal_names:
+            request.signal_names = list(engine.signals.keys())[:50]
+
         result_data = {"time": time_data.tolist(), "signals": {}, "statistics": {}}
 
         for signal_name in request.signal_names:
             if signal_name in engine.signals:
                 signal_data = engine.signals[signal_name]
+
+                if not isinstance(signal_data, np.ndarray):
+                    signal_data = np.array(signal_data)
+
+                if len(signal_data) == 0:
+                    continue
 
                 valid_mask = np.ones(len(signal_data), dtype=bool)
                 if request.start_time is not None and len(time_data) == len(signal_data):
@@ -544,30 +559,34 @@ def get_signal_timeseries(
                 filtered_data = signal_data[valid_mask]
 
                 if request.max_points and len(filtered_data) > request.max_points:
-                    step = len(filtered_data) // request.max_points
+                    step = max(1, len(filtered_data) // request.max_points)
                     filtered_data = filtered_data[::step]
                     filtered_time = filtered_time[::step]
 
                 result_data["signals"][signal_name] = filtered_data.tolist()
 
-                valid_values = signal_data[~np.isnan(signal_data.astype(float))]
-                if len(valid_values) > 0:
-                    result_data["statistics"][signal_name] = {
-                        "min": float(np.min(valid_values)),
-                        "max": float(np.max(valid_values)),
-                        "mean": float(np.mean(valid_values)),
-                        "std": float(np.std(valid_values)),
-                        "count": len(valid_values),
-                    }
+                try:
+                    numeric_data = signal_data.astype(float)
+                    valid_values = numeric_data[~np.isnan(numeric_data)]
+                    if len(valid_values) > 0:
+                        result_data["statistics"][signal_name] = {
+                            "min": float(np.min(valid_values)),
+                            "max": float(np.max(valid_values)),
+                            "mean": float(np.mean(valid_values)),
+                            "std": float(np.std(valid_values)),
+                            "count": len(valid_values),
+                        }
+                except (ValueError, TypeError):
+                    pass
 
-        result_data["time"] = (
-            result_data["time"][: len(list(result_data["signals"].values())[0])]
-            if result_data["signals"]
-            else result_data["time"]
-        )
+        if result_data["signals"]:
+            first_signal_len = len(list(result_data["signals"].values())[0])
+            result_data["time"] = result_data["time"][:first_signal_len]
 
         return {"status": "success", "test_data_id": test_data_id, "data": result_data}
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error getting signal timeseries: {str(e)}", exc_info=True)
         raise HTTPException(
