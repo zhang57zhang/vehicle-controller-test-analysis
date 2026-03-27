@@ -347,7 +347,7 @@ const DataAnalysis: React.FC = () => {
       setAnalysisResults([])
 
       await analysisApi.executeAnalysis(analysisConfig.test_data_id, {
-        timeSync: {
+        time_sync: {
           target_sampling_rate: analysisConfig.sampling_rate,
           interpolation_method: analysisConfig.interpolation_method,
         },

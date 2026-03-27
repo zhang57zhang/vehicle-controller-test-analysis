@@ -164,8 +164,8 @@ export const testCaseApi = {
 // 数据分析API
 export const analysisApi = {
   executeAnalysis: async (testDataId: ID, options: {
-    timeSync?: any
-    indicators?: string[]
+    time_sync?: any
+    indicators?: any[]
   }) => {
     const response = await api.post(`/test-data/${testDataId}/analyze`, options)
     return response.data
