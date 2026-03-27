@@ -7,8 +7,6 @@ import { useProjectStore } from '../stores/project'
 import type { Project, TestDataFile, DBCFile, SignalMapping } from '../types'
 import dayjs from 'dayjs'
 
-const { TabPane } = Tabs
-
 /**
  * 项目详情页面
  * 功能：显示项目基本信息、DBC文件列表、测试数据文件列表、信号映射配置
@@ -31,7 +29,6 @@ const ProjectDetail: React.FC = () => {
     }
   }, [id])
 
-  // 加载项目详情
   const loadProjectDetail = async (projectId: string) => {
     try {
       setLoading(true)
@@ -56,7 +53,6 @@ const ProjectDetail: React.FC = () => {
     }
   }
 
-  // 删除测试数据
   const handleDeleteTestData = async (testDataId: string) => {
     try {
       await testDataApi.deleteTestData(testDataId)
@@ -70,7 +66,6 @@ const ProjectDetail: React.FC = () => {
     }
   }
 
-  // 删除DBC文件
   const handleDeleteDBC = async (dbcId: string) => {
     try {
       await dbcApi.deleteDBC?.(dbcId)
@@ -84,12 +79,10 @@ const ProjectDetail: React.FC = () => {
     }
   }
 
-  // 导入信号映射
   const handleImportSignalMappings = async () => {
     message.info('导入信号映射功能开发中')
   }
 
-  // 导出信号映射
   const handleExportSignalMappings = async () => {
     if (!project) return
 
@@ -110,7 +103,6 @@ const ProjectDetail: React.FC = () => {
     }
   }
 
-  // 测试数据表格列
   const testDataColumns = [
     {
       title: '文件名',
@@ -165,7 +157,6 @@ const ProjectDetail: React.FC = () => {
     },
   ]
 
-  // DBC文件表格列
   const dbcColumns = [
     {
       title: '文件名',
@@ -206,7 +197,6 @@ const ProjectDetail: React.FC = () => {
     },
   ]
 
-  // 信号映射表格列
   const signalMappingColumns = [
     {
       title: '信号别名',
@@ -244,10 +234,115 @@ const ProjectDetail: React.FC = () => {
     },
   ]
 
+  const tabItems = [
+    {
+      key: 'info',
+      label: '基本信息',
+      children: (
+        <Descriptions bordered column={2}>
+          <Descriptions.Item label="项目ID" span={2}>{project?.id}</Descriptions.Item>
+          <Descriptions.Item label="项目名称" span={2}>
+            <span style={{ fontSize: 18, fontWeight: 500 }}>{project?.name}</span>
+          </Descriptions.Item>
+          <Descriptions.Item label="项目描述" span={2}>
+            {project?.description || '-'}
+          </Descriptions.Item>
+          <Descriptions.Item label="DBC文件" span={2}>
+            {project?.dbc_file ? <Tag color="blue">已配置</Tag> : <Tag>未配置</Tag>}
+          </Descriptions.Item>
+          <Descriptions.Item label="创建时间">{project && dayjs(project.created_at).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
+          <Descriptions.Item label="更新时间">{project && dayjs(project.updated_at).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
+        </Descriptions>
+      ),
+    },
+    {
+      key: 'testdata',
+      label: `测试数据 (${testDataList.length})`,
+      children: testDataList.length > 0 ? (
+        <Table
+          columns={testDataColumns}
+          dataSource={testDataList}
+          rowKey="id"
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `共 ${total} 个文件`,
+          }}
+          scroll={{ x: 800 }}
+        />
+      ) : (
+        <Empty description="暂无测试数据" />
+      ),
+    },
+    {
+      key: 'dbc',
+      label: `DBC文件 (${dbcList.length})`,
+      children: dbcList.length > 0 ? (
+        <Table
+          columns={dbcColumns}
+          dataSource={dbcList}
+          rowKey="id"
+          pagination={false}
+          scroll={{ x: 600 }}
+        />
+      ) : (
+        <Empty description="暂无DBC文件" />
+      ),
+    },
+    {
+      key: 'mappings',
+      label: (
+        <span>
+          信号映射 ({signalMappings.length})
+          {signalMappings.length > 0 && (
+            <Button
+              type="link"
+              size="small"
+              icon={<DownloadOutlined />}
+              onClick={(e) => {
+                e.stopPropagation()
+                handleExportSignalMappings()
+              }}
+            >
+              导出
+            </Button>
+          )}
+        </span>
+      ),
+      children: (
+        <>
+          <Space style={{ marginBottom: 16 }}>
+            <Button type="primary" icon={<PlusOutlined />} onClick={handleImportSignalMappings}>
+              导入信号映射
+            </Button>
+            <Button icon={<DownloadOutlined />} onClick={handleExportSignalMappings}>
+              导出信号映射
+            </Button>
+          </Space>
+          {signalMappings.length > 0 ? (
+            <Table
+              columns={signalMappingColumns}
+              dataSource={signalMappings}
+              rowKey="id"
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (total) => `共 ${total} 个映射`,
+              }}
+              scroll={{ x: 1000 }}
+            />
+          ) : (
+            <Empty description="暂无信号映射配置" />
+          )}
+        </>
+      ),
+    },
+  ]
+
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}>
-        <Spin size="large" tip="加载中..." />
+        <Spin size="large" />
       </div>
     )
   }
@@ -275,103 +370,7 @@ const ProjectDetail: React.FC = () => {
       </Space>
 
       <Card>
-        <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)}>
-          <TabPane tab="基本信息" key="info">
-            <Descriptions bordered column={2}>
-              <Descriptions.Item label="项目ID" span={2}>{project.id}</Descriptions.Item>
-              <Descriptions.Item label="项目名称" span={2}>
-                <span style={{ fontSize: 18, fontWeight: 500 }}>{project.name}</span>
-              </Descriptions.Item>
-              <Descriptions.Item label="项目描述" span={2}>
-                {project.description || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="DBC文件" span={2}>
-                {project.dbc_file ? <Tag color="blue">已配置</Tag> : <Tag>未配置</Tag>}
-              </Descriptions.Item>
-              <Descriptions.Item label="创建时间">{dayjs(project.created_at).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
-              <Descriptions.Item label="更新时间">{dayjs(project.updated_at).format('YYYY-MM-DD HH:mm:ss')}</Descriptions.Item>
-            </Descriptions>
-          </TabPane>
-
-          <TabPane tab={`测试数据 (${testDataList.length})`} key="testdata">
-            {testDataList.length > 0 ? (
-              <Table
-                columns={testDataColumns}
-                dataSource={testDataList}
-                rowKey="id"
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: true,
-                  showTotal: (total) => `共 ${total} 个文件`,
-                }}
-                scroll={{ x: 800 }}
-              />
-            ) : (
-              <Empty description="暂无测试数据" />
-            )}
-          </TabPane>
-
-          <TabPane tab={`DBC文件 (${dbcList.length})`} key="dbc">
-            {dbcList.length > 0 ? (
-              <Table
-                columns={dbcColumns}
-                dataSource={dbcList}
-                rowKey="id"
-                pagination={false}
-                scroll={{ x: 600 }}
-              />
-            ) : (
-              <Empty description="暂无DBC文件" />
-            )}
-          </TabPane>
-
-          <TabPane
-            tab={
-              <span>
-                信号映射 ({signalMappings.length})
-                {signalMappings.length > 0 && (
-                  <Button
-                    type="link"
-                    size="small"
-                    icon={<DownloadOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleExportSignalMappings()
-                    }}
-                  >
-                    导出
-                  </Button>
-                )}
-              </span>
-            }
-            key="mappings"
-          >
-            <Space style={{ marginBottom: 16 }}>
-              <Button type="primary" icon={<PlusOutlined />} onClick={handleImportSignalMappings}>
-                导入信号映射
-              </Button>
-              <Button icon={<DownloadOutlined />} onClick={handleExportSignalMappings}>
-                导出信号映射
-              </Button>
-            </Space>
-
-            {signalMappings.length > 0 ? (
-              <Table
-                columns={signalMappingColumns}
-                dataSource={signalMappings}
-                rowKey="id"
-                pagination={{
-                  pageSize: 10,
-                  showSizeChanger: true,
-                  showTotal: (total) => `共 ${total} 个映射`,
-                }}
-                scroll={{ x: 1000 }}
-              />
-            ) : (
-              <Empty description="暂无信号映射配置" />
-            )}
-          </TabPane>
-        </Tabs>
+        <Tabs activeKey={activeTab} onChange={(key) => setActiveTab(key)} items={tabItems} />
       </Card>
     </div>
   )

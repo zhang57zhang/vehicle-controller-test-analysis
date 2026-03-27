@@ -77,11 +77,7 @@ export const testDataApi = {
 export const dbcApi = {
   // 上传DBC文件
   uploadDBC: async (projectId: string, formData: FormData) => {
-    const response = await api.post<DBCFile>(`/projects/${projectId}/dbc/upload`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
+    const response = await api.post<DBCFile>(`/projects/${projectId}/dbc/upload`, formData)
     return response.data
   },
 
