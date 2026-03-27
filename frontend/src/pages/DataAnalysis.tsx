@@ -56,17 +56,17 @@ type ToastMessage = {
 }
 
 interface AnalysisConfig {
-  test_data_id?: string
+  test_data_id?: number
   sampling_rate?: number
   interpolation_method?: 'linear' | 'spline' | 'step'
 }
 
 interface AnalysisResult {
-  id: string
+  id: number
   indicator_id: string
   indicator_name: string
-  result_value: number | string
-  result_status: 'pass' | 'warning' | 'fail'
+  result_value: number | string | object
+  result_status: 'pass' | 'warning' | 'fail' | 'error'
   calculated_at: string
 }
 
@@ -171,7 +171,7 @@ const DataAnalysis: React.FC = () => {
     }
   }
 
-  const loadSignalData = async (testDataId: string) => {
+  const loadSignalData = async (testDataId: number) => {
     try {
       const response = await fetch(`/api/test-data/${testDataId}/signals`)
       if (response.ok) {
@@ -478,9 +478,9 @@ const DataAnalysis: React.FC = () => {
                 </div>
               ) : (
                 <Select
-                  value={analysisConfig.test_data_id}
+                  value={analysisConfig.test_data_id ? String(analysisConfig.test_data_id) : ''}
                   onValueChange={(value) =>
-                    setAnalysisConfig({ ...analysisConfig, test_data_id: value })
+                    setAnalysisConfig({ ...analysisConfig, test_data_id: parseInt(value, 10) })
                   }
                 >
                   <SelectTrigger>

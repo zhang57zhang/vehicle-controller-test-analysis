@@ -1,0 +1,328 @@
+VERSION ""
+
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: VCU MCU BMS DCDC OBD
+
+// ==================== VCU Messages (0x100-0x1FF) ====================
+
+BO_ 256 VCU_Status1: 8 VCU
+ SG_ VCU_State : 0|4@1+ (1,0) [0|15] ""  VCU
+ SG_ Ignition_Status : 4|2@1+ (1,0) [0|3] ""  VCU
+ SG_ Ready_Status : 6|2@1+ (1,0) [0|3] ""  VCU
+ SG_ Reserved1 : 8|20@1+ (1,0) [0|1048575] ""  VCU
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  VCU
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 257 VCU_Vehicle_Status: 8 VCU
+ SG_ Vehicle_Speed : 0|12@1+ (0.01,0) [0|100] "km/h"  VCU
+ SG_ Gear_State : 12|3@1+ (1,0) [0|7] ""  VCU
+ SG_ Drive_Mode : 15|2@1+ (1,0) [0|3] ""  VCU
+ SG_ Brake_Pedal_Pos : 20|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Accel_Pedal_Pos : 28|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Reserved1 : 36|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved2 : 44|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 52|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 258 VCU_Control_Cmd1: 8 VCU
+ SG_ Target_Torque : 0|12@1- (0.1,0) [-300|300] "Nm"  MCU
+ SG_ Target_Speed : 12|12@1+ (1,0) [0|15000] "rpm"  MCU
+ SG_ Torque_Enable : 24|1@1+ (1,0) [0|1] ""  MCU
+ SG_ Inverter_Enable : 25|1@1+ (1,0) [0|1] ""  MCU
+ SG_ Reverse_Enable : 26|1@1+ (1,0) [0|1] ""  MCU
+ SG_ Reserved1 : 27|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Reserved2 : 28|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 36|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved3 : 44|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8_2 : 52|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 259 VCU_Control_Cmd2: 8 VCU
+ SG_ Discharge_Current_Limit : 0|12@1+ (0.1,0) [0|400] "A"  BMS
+ SG_ Charge_Current_Limit : 12|12@1+ (0.1,0) [0|400] "A"  BMS
+ SG_ HV_Loop_Enable : 24|1@1+ (1,0) [0|1] ""  BMS
+ SG_ Precharge_Enable : 25|1@1+ (1,0) [0|1] ""  BMS
+ SG_ Main_Relay_Cmd : 26|1@1+ (1,0) [0|1] ""  BMS
+ SG_ Reserved1 : 27|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Reserved2 : 28|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 36|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved3 : 44|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8_2 : 52|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 260 VCU_DCDC_Cmd: 8 VCU
+ SG_ DCDC_Enable_Cmd : 0|1@1+ (1,0) [0|1] ""  DCDC
+ SG_ Target_Output_Voltage : 8|12@1+ (0.01,0) [10|16] "V"  DCDC
+ SG_ Target_Output_Current : 20|8@1+ (0.1,0) [0|200] "A"  DCDC
+ SG_ Reserved1 : 28|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 36|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved2 : 44|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8_2 : 52|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 261 VCU_Diagnostics1: 8 VCU
+ SG_ DTC_Count : 0|8@1+ (1,0) [0|255] ""  VCU
+ SG_ DTC_1 : 8|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ Warning_Level : 24|3@1+ (1,0) [0|7] ""  VCU
+ SG_ System_Fault : 27|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Reserved1 : 28|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 36|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved2 : 44|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8_2 : 52|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 262 VCU_Diagnostics2: 8 VCU
+ SG_ DTC_2 : 0|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ DTC_3 : 16|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ DTC_4 : 32|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ Reserved1 : 48|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 56|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 263 VCU_Energy: 8 VCU
+ SG_ Trip_Energy : 0|16@1+ (0.01,0) [0|100] "kWh"  VCU
+ SG_ Total_Energy : 16|16@1+ (0.01,0) [0|1000] "kWh"  VCU
+ SG_ Regenerative_Energy : 32|16@1+ (0.01,0) [0|10] "kWh"  VCU
+ SG_ Reserved1 : 48|8@1+ (1,0) [0|255] ""  VCU
+ SG_ CRC8 : 56|8@1+ (1,0) [0|255] ""  VCU
+
+BO_ 264 VCU_Timestamp: 8 VCU
+ SG_ UTC_Time_0 : 0|8@1+ (1,0) [0|255] ""  VCU
+ SG_ UTC_Time_1 : 8|8@1+ (1,0) [0|255] ""  VCU
+ SG_ UTC_Time_2 : 16|8@1+ (1,0) [0|255] ""  VCU
+ SG_ UTC_Time_3 : 24|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Rolling_Counter : 32|4@1+ (1,0) [0|15] ""  VCU
+ SG_ Reserved1 : 36|12@1+ (1,0) [0|4095] ""  VCU
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  VCU
+
+// ==================== MCU Messages (0x200-0x2FF) ====================
+
+BO_ 512 MCU_Status1: 8 MCU
+ SG_ MCU_State : 0|4@1+ (1,0) [0|15] ""  MCU
+ SG_ Inverter_State : 4|2@1+ (1,0) [0|3] ""  MCU
+ SG_ Fault_Level : 6|2@1+ (1,0) [0|3] ""  MCU
+ SG_ Reserved1 : 8|20@1+ (1,0) [0|1048575] ""  MCU
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  MCU
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  MCU
+
+BO_ 513 MCU_Motor_Status: 8 MCU
+ SG_ Motor_Torque_Actual : 0|12@1- (0.1,0) [-300|300] "Nm"  VCU
+ SG_ Motor_Speed_Actual : 12|12@1+ (1,0) [-15000|15000] "rpm"  VCU
+ SG_ Motor_Temperature : 24|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Inverter_Temperature : 32|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  MCU
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  MCU
+
+BO_ 514 MCU_Power: 8 MCU
+ SG_ DC_Link_Voltage : 0|12@1+ (0.1,0) [0|800] "V"  VCU
+ SG_ DC_Link_Current : 12|12@1- (0.1,0) [-600|600] "A"  VCU
+ SG_ Motor_Power : 24|16@1+ (0.1,0) [-200|200] "kW"  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  MCU
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  MCU
+
+BO_ 515 MCU_Efficiency: 8 MCU
+ SG_ Motor_Efficiency : 0|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Inverter_Efficiency : 8|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Total_Efficiency : 16|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ IGBT_Temperature : 24|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Reserved1 : 32|8@1+ (1,0) [0|255] ""  MCU
+ SG_ CRC8 : 40|8@1+ (1,0) [0|255] ""  MCU
+
+BO_ 516 MCU_Flags: 8 MCU
+ SG_ Torque_Limit_Flag : 0|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Speed_Limit_Flag : 1|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Over_Temperature_Flag : 2|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Under_Voltage_Flag : 3|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Over_Current_Flag : 4|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Fault_Flag : 5|1@1+ (1,0) [0|1] ""  MCU
+ SG_ Reserved1 : 6|2@1+ (1,0) [0|3] ""  MCU
+ SG_ Reserved2 : 8|20@1+ (1,0) [0|1048575] ""  MCU
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  MCU
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  MCU
+
+BO_ 517 MCU_Diagnostics: 8 MCU
+ SG_ Fault_Code : 0|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ Fault_Code_2 : 16|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ Warning_Code : 32|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  MCU
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  MCU
+
+BO_ 518 MCU_Counter: 8 MCU
+ SG_ Odometer : 0|24@1+ (0.01,0) [0|100000] "km"  VCU
+ SG_ Run_Hours : 24|16@1+ (0.01,0) [0|10000] "h"  VCU
+ SG_ Cycle_Count : 40|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ CRC8 : 56|8@1+ (1,0) [0|255] ""  MCU
+
+// ==================== BMS Messages (0x300-0x3FF) ====================
+
+BO_ 768 BMS_Status1: 8 BMS
+ SG_ BMS_State : 0|4@1+ (1,0) [0|15] ""  BMS
+ SG_ HV_Loop_State : 4|2@1+ (1,0) [0|3] ""  BMS
+ SG_ Relay_State : 6|1@1+ (1,0) [0|1] ""  BMS
+ SG_ Precharge_State : 7|1@1+ (1,0) [0|1] ""  BMS
+ SG_ Reserved1 : 8|20@1+ (1,0) [0|1048575] ""  BMS
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  BMS
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 769 BMS_SOC: 8 BMS
+ SG_ SOC : 0|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ SOH : 8|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Capacity_Remaining : 16|16@1+ (0.1,0) [0|100] "Ah"  VCU
+ SG_ Reserved1 : 32|8@1+ (1,0) [0|255] ""  BMS
+ SG_ CRC8 : 40|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 770 BMS_HV_Status: 8 BMS
+ SG_ Pack_Voltage : 0|12@1+ (0.1,0) [0|800] "V"  VCU
+ SG_ Pack_Current : 12|12@1- (0.1,0) [-600|600] "A"  VCU
+ SG_ Pack_Power : 24|16@1+ (0.1,0) [-200|200] "kW"  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  BMS
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 771 BMS_Cell_Status: 8 BMS
+ SG_ Cell_Max_Voltage : 0|12@1+ (0.001,0) [2.5|4.5] "V"  VCU
+ SG_ Cell_Max_Index : 12|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Cell_Min_Voltage : 20|12@1+ (0.001,0) [2.5|4.5] "V"  VCU
+ SG_ Cell_Min_Index : 32|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  BMS
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 772 BMS_Temperature: 8 BMS
+ SG_ Pack_Max_Temp : 0|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Pack_Min_Temp : 8|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Avg_Temp : 16|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Temp_Sensor_Count : 24|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Reserved1 : 32|8@1+ (1,0) [0|255] ""  BMS
+ SG_ CRC8 : 40|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 773 BMS_Balancing: 8 BMS
+ SG_ Balancing_Enable : 0|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Balancing_Cell_Count : 8|8@1+ (1,0) [0|255] ""  VCU
+ SG_ Balancing_Current : 16|8@1+ (0.1,0) [0|5] "A"  VCU
+ SG_ Balancing_Time : 24|16@1+ (1,0) [0|65535] "s"  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  BMS
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 774 BMS_Lifetime: 8 BMS
+ SG_ Cycle_Count : 0|16@1+ (1,0) [0|65535] ""  VCU
+ SG_ Total_Energy : 16|16@1+ (0.1,0) [0|10000] "kWh"  VCU
+ SG_ Total_Charge : 32|16@1+ (0.1,0) [0|10000] "kWh"  VCU
+ SG_ Reserved1 : 48|8@1+ (1,0) [0|255] ""  BMS
+ SG_ CRC8 : 56|8@1+ (1,0) [0|255] ""  BMS
+
+BO_ 775 BMS_Warnings: 8 BMS
+ SG_ Over_Voltage_Flag : 0|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Under_Voltage_Flag : 1|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Over_Temp_Flag : 2|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Under_Temp_Flag : 3|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Over_Current_Flag : 4|1@1+ (1,0) [0|1] ""  VCU
+ SG_ SOC_Low_Flag : 5|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Reserved1 : 6|2@1+ (1,0) [0|3] ""  BMS
+ SG_ Reserved2 : 8|20@1+ (1,0) [0|1048575] ""  BMS
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  BMS
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  BMS
+
+// ==================== DCDC Messages (0x400-0x4FF) ====================
+
+BO_ 1024 DCDC_Status1: 8 DCDC
+ SG_ DCDC_State : 0|4@1+ (1,0) [0|15] ""  DCDC
+ SG_ Enable_State : 4|1@1+ (1,0) [0|1] ""  DCDC
+ SG_ Fault_Level : 5|2@1+ (1,0) [0|3] ""  DCDC
+ SG_ Reserved1 : 7|1@1+ (1,0) [0|1] ""  DCDC
+ SG_ Reserved2 : 8|20@1+ (1,0) [0|1048575] ""  DCDC
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  DCDC
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  DCDC
+
+BO_ 1025 DCDC_Input: 8 DCDC
+ SG_ Input_Voltage : 0|12@1+ (0.1,0) [0|800] "V"  VCU
+ SG_ Input_Current : 12|12@1- (0.1,0) [-50|50] "A"  VCU
+ SG_ Input_Power : 24|16@1+ (0.1,0) [0|40] "kW"  VCU
+ SG_ Reserved1 : 40|8@1+ (1,0) [0|255] ""  DCDC
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  DCDC
+
+BO_ 1026 DCDC_Output: 8 DCDC
+ SG_ Output_Voltage : 0|12@1+ (0.01,0) [10|16] "V"  VCU
+ SG_ Output_Current : 12|8@1+ (0.1,0) [0|200] "A"  VCU
+ SG_ Output_Power : 20|12@1+ (0.1,0) [0|4] "kW"  VCU
+ SG_ Reserved1 : 32|8@1+ (1,0) [0|255] ""  DCDC
+ SG_ CRC8 : 40|8@1+ (1,0) [0|255] ""  DCDC
+
+BO_ 1027 DCDC_Efficiency: 8 DCDC
+ SG_ Efficiency : 0|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Temp_Primary : 8|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Temp_Secondary : 16|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Temp_Heatsink : 24|8@1+ (1,-40) [-40|215] "C"  VCU
+ SG_ Reserved1 : 32|8@1+ (1,0) [0|255] ""  DCDC
+ SG_ CRC8 : 40|8@1+ (1,0) [0|255] ""  DCDC
+
+BO_ 1028 DCDC_Status2: 8 DCDC
+ SG_ Soft_Start_Enable : 0|1@1+ (1,0) [0|1] ""  VCU
+ SG_ PWM_Frequency : 8|8@1+ (1000,0) [0|255000] "Hz"  VCU
+ SG_ Duty_Cycle : 16|8@1+ (0.5,0) [0|100] "%"  VCU
+ SG_ Reserved1 : 24|4@1+ (1,0) [0|15] ""  DCDC
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  DCDC
+ SG_ Reserved2 : 32|16@1+ (1,0) [0|65535] ""  DCDC
+ SG_ CRC8 : 48|8@1+ (1,0) [0|255] ""  DCDC
+
+BO_ 1029 DCDC_Flags: 8 DCDC
+ SG_ Over_Voltage_Flag : 0|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Under_Voltage_Flag : 1|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Over_Current_Flag : 2|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Over_Temp_Flag : 3|1@1+ (1,0) [0|1] ""  VCU
+ SG_ Fault_Flag : 4|1@1+ (1,0) [0|1] ""  DCDC
+ SG_ Reserved1 : 5|3@1+ (1,0) [0|7] ""  DCDC
+ SG_ Reserved2 : 8|20@1+ (1,0) [0|1048575] ""  DCDC
+ SG_ Rolling_Counter : 28|4@1+ (1,0) [0|15] ""  DCDC
+ SG_ CRC8 : 32|8@1+ (1,0) [0|255] ""  DCDC
+
+BO_ 1030 DCDC_Counter: 8 DCDC
+ SG_ Run_Time : 0|16@1+ (0.01,0) [0|10000] "h"  VCU
+ SG_ Output_Energy : 16|16@1+ (0.01,0) [0|1000] "kWh"  VCU
+ SG_ Input_Energy : 32|16@1+ (0.01,0) [0|1000] "kWh"  VCU
+ SG_ Reserved1 : 48|8@1+ (1,0) [0|255] ""  DCDC
+ SG_ CRC8 : 56|8@1+ (1,0) [0|255] ""  DCDC
+
+// ==================== Value Tables ====================
+
+VAL_ 256 VCU_State 0 "PowerOff" 1 "Init" 2 "Standby" 3 "Ready" 4 "Run" 5 "Fault" 6 "Shutdown" 15 "Invalid";
+VAL_ 256 Ignition_Status 0 "OFF" 1 "ACC" 2 "ON" 3 "START";
+VAL_ 256 Ready_Status 0 "NotReady" 1 "Ready" 2 "Wait" 3 "Error";
+VAL_ 257 Gear_State 0 "P" 1 "R" 2 "N" 3 "D" 4 "S" 5 "L" 6 "Invalid";
+VAL_ 257 Drive_Mode 0 "Normal" 1 "Sport" 2 "Eco" 3 "Snow";
+VAL_ 261 Warning_Level 0 "None" 1 "Info" 2 "Warning" 3 "Error" 4 "Critical" 7 "Invalid";
+
+VAL_ 512 MCU_State 0 "Off" 1 "Init" 2 "Standby" 3 "Ready" 4 "Run" 5 "Fault" 15 "Invalid";
+VAL_ 512 Inverter_State 0 "Off" 1 "Precharge" 2 "Ready" 3 "Run";
+VAL_ 512 Fault_Level 0 "None" 1 "Warning" 2 "Error" 3 "Critical";
+
+VAL_ 768 BMS_State 0 "Off" 1 "Init" 2 "Standby" 3 "Charge" 4 "Discharge" 5 "Fault" 15 "Invalid";
+VAL_ 768 HV_Loop_State 0 "Open" 1 "Precharge" 2 "Closed" 3 "Fault";
+VAL_ 768 Relay_State 0 "Open" 1 "Closed";
+VAL_ 768 Precharge_State 0 "Inactive" 1 "Active";
+
+VAL_ 1024 DCDC_State 0 "Off" 1 "Init" 2 "Standby" 3 "Run" 4 "Fault" 15 "Invalid";
+VAL_ 1024 Fault_Level 0 "None" 1 "Warning" 2 "Error" 3 "Critical";
