@@ -8,6 +8,7 @@
 - MATLAB .mat文件（使用scipy，支持v6和v7.3）
 - Vector CAN log文件（使用python-can）
 """
+
 import logging
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 class FileParserError(Exception):
     """文件解析错误"""
+
     pass
 
 
@@ -31,11 +33,11 @@ class FileParser:
 
     def __init__(self):
         self.parser_map = {
-            'csv': self.parse_csv,
-            'excel': self.parse_excel,
-            'mat': self.parse_mat,
-            'dbc': self.parse_dbc,
-            'log': self.parse_can_log
+            "csv": self.parse_csv,
+            "excel": self.parse_excel,
+            "mat": self.parse_mat,
+            "dbc": self.parse_dbc,
+            "log": self.parse_can_log,
         }
 
     def parse(self, file_path: str, file_type: str, **kwargs) -> Dict[str, Any]:
@@ -74,10 +76,10 @@ class FileParser:
     def parse_csv(
         self,
         file_path: str,
-        encoding: str = 'utf-8',
-        delimiter: str = ',',
+        encoding: str = "utf-8",
+        delimiter: str = ",",
         header: int = 0,
-        **kwargs
+        **kwargs,
     ) -> Dict[str, Any]:
         """
         解析CSV文件
@@ -95,11 +97,7 @@ class FileParser:
         try:
             # 使用pandas读取CSV
             df = pd.read_csv(
-                file_path,
-                encoding=encoding,
-                delimiter=delimiter,
-                header=header,
-                **kwargs
+                file_path, encoding=encoding, delimiter=delimiter, header=header, **kwargs
             )
 
             # 数据验证
@@ -107,15 +105,15 @@ class FileParser:
                 raise FileParserError("CSV file is empty")
 
             # 转换为字典格式
-            data = df.to_dict('records')
+            data = df.to_dict("records")
 
             return {
-                'file_type': 'csv',
-                'columns': list(df.columns),
-                'row_count': len(df),
-                'data': data,
-                'sample_data': df.head(10).to_dict('records'),
-                'data_types': df.dtypes.astype(str).to_dict()
+                "file_type": "csv",
+                "columns": list(df.columns),
+                "row_count": len(df),
+                "data": data,
+                "sample_data": df.head(10).to_dict("records"),
+                "data_types": df.dtypes.astype(str).to_dict(),
             }
 
         except pd.errors.EmptyDataError:
@@ -126,11 +124,7 @@ class FileParser:
             raise FileParserError(f"Error reading CSV file: {str(e)}")
 
     def parse_excel(
-        self,
-        file_path: str,
-        sheet_name: Optional[str] = None,
-        header: int = 0,
-        **kwargs
+        self, file_path: str, sheet_name: Optional[str] = None, header: int = 0, **kwargs
     ) -> Dict[str, Any]:
         """
         解析Excel文件
@@ -147,11 +141,7 @@ class FileParser:
         try:
             # 使用pandas读取Excel
             df = pd.read_excel(
-                file_path,
-                sheet_name=sheet_name,
-                header=header,
-                engine='openpyxl',
-                **kwargs
+                file_path, sheet_name=sheet_name, header=header, engine="openpyxl", **kwargs
             )
 
             # 数据验证
@@ -159,16 +149,16 @@ class FileParser:
                 raise FileParserError("Excel file is empty")
 
             # 转换为字典格式
-            data = df.to_dict('records')
+            data = df.to_dict("records")
 
             return {
-                'file_type': 'excel',
-                'sheet_name': sheet_name or 'Sheet1',
-                'columns': list(df.columns),
-                'row_count': len(df),
-                'data': data,
-                'sample_data': df.head(10).to_dict('records'),
-                'data_types': df.dtypes.astype(str).to_dict()
+                "file_type": "excel",
+                "sheet_name": sheet_name or "Sheet1",
+                "columns": list(df.columns),
+                "row_count": len(df),
+                "data": data,
+                "sample_data": df.head(10).to_dict("records"),
+                "data_types": df.dtypes.astype(str).to_dict(),
             }
 
         except Exception as e:
@@ -191,11 +181,11 @@ class FileParser:
             # 尝试使用scipy.io.loadmat（支持v6和v7格式）
             try:
                 mat_data = sio.loadmat(file_path, struct_as_record=False, squeeze_me=True)
-                mat_version = 'v6/v7'
+                mat_version = "v6/v7"
             except NotImplementedError:
                 # 如果是v7.3格式，使用h5py
                 try:
-                    with h5py.File(file_path, 'r') as f:
+                    with h5py.File(file_path, "r") as f:
                         for key in f.keys():
                             # 只读取数值数据
                             if isinstance(f[key], h5py.Dataset):
@@ -203,12 +193,12 @@ class FileParser:
                                     mat_data[key] = f[key][:]
                                 except Exception:
                                     mat_data[key] = str(f[key])
-                    mat_version = 'v7.3'
+                    mat_version = "v7.3"
                 except Exception as e:
                     raise FileParserError(f"Failed to parse MAT v7.3 file: {str(e)}")
 
             # 过滤掉MATLAB的内部变量
-            internal_vars = {'__header__', '__version__', '__globals__'}
+            internal_vars = {"__header__", "__version__", "__globals__"}
             filtered_data = {k: v for k, v in mat_data.items() if k not in internal_vars}
 
             if not filtered_data:
@@ -220,11 +210,11 @@ class FileParser:
                 serializable_data[key] = self._serialize_matlab_value(value)
 
             return {
-                'file_type': 'mat',
-                'mat_version': mat_version,
-                'variables': list(filtered_data.keys()),
-                'data': serializable_data,
-                'variable_info': self._get_variable_info(filtered_data)
+                "file_type": "mat",
+                "mat_version": mat_version,
+                "variables": list(filtered_data.keys()),
+                "data": serializable_data,
+                "variable_info": self._get_variable_info(filtered_data),
             }
 
         except FileParserError:
@@ -275,9 +265,9 @@ class FileParser:
         info = {}
         for key, value in data.items():
             info[key] = {
-                'type': type(value).__name__,
-                'shape': getattr(value, 'shape', None),
-                'size': getattr(value, 'size', None)
+                "type": type(value).__name__,
+                "shape": getattr(value, "shape", None),
+                "size": getattr(value, "size", None),
             }
         return info
 
@@ -301,46 +291,47 @@ class FileParser:
             for message in db.messages:
                 signals_info = []
                 for signal in message.signals:
-                    signals_info.append({
-                        'name': signal.name,
-                        'start': signal.start,
-                        'length': signal.length,
-                        'byte_order': signal.byte_order,
-                        'is_signed': signal.is_signed,
-                        'scale': signal.scale,
-                        'offset': signal.offset,
-                        'minimum': signal.minimum,
-                        'maximum': signal.maximum,
-                        'unit': signal.unit,
-                        'comment': signal.comment,
-                        'enumeration': signal.enumeration
-                    })
+                    signals_info.append(
+                        {
+                            "name": signal.name,
+                            "start": signal.start,
+                            "length": signal.length,
+                            "byte_order": signal.byte_order,
+                            "is_signed": signal.is_signed,
+                            "scale": signal.scale,
+                            "offset": signal.offset,
+                            "minimum": signal.minimum,
+                            "maximum": signal.maximum,
+                            "unit": signal.unit,
+                            "comment": signal.comment,
+                            "enumeration": signal.enumeration,
+                        }
+                    )
 
-                messages_info.append({
-                    'frame_id': message.frame_id,
-                    'name': message.name,
-                    'length': message.length,
-                    'comment': message.comment,
-                    'signals': signals_info,
-                    'is_extended_frame': message.is_extended_frame
-                })
+                messages_info.append(
+                    {
+                        "frame_id": message.frame_id,
+                        "name": message.name,
+                        "length": message.length,
+                        "comment": message.comment,
+                        "signals": signals_info,
+                        "is_extended_frame": message.is_extended_frame,
+                    }
+                )
 
             return {
-                'file_type': 'dbc',
-                'version': db.version,
-                'messages_count': len(db.messages),
-                'nodes': [node.name for node in db.nodes],
-                'messages': messages_info
+                "file_type": "dbc",
+                "version": db.version,
+                "messages_count": len(db.messages),
+                "nodes": [node.name for node in db.nodes],
+                "messages": messages_info,
             }
 
         except Exception as e:
             raise FileParserError(f"Error reading DBC file: {str(e)}")
 
     def parse_can_log(
-        self,
-        file_path: str,
-        channel: Optional[int] = None,
-        **kwargs
+        self, file_path: str, channel: Optional[int] = None, **kwargs
     ) -> Dict[str, Any]:
         """
         解析Vector CAN log文件
@@ -354,55 +345,116 @@ class FileParser:
             包含解析结果的字典
         """
         try:
-            # 根据文件扩展名选择日志类型
             ext = Path(file_path).suffix.lower()
 
-            if ext == '.log':
-                log_type = 'vector'
-            elif ext == '.blf':
-                log_type = 'blf'
-            elif ext == '.asc':
-                log_type = 'asc'
+            if ext == ".log":
+                log_type = "vector"
+            elif ext == ".blf":
+                log_type = "blf"
+            elif ext == ".asc":
+                log_type = "asc"
             else:
-                log_type = 'vector'  # 默认
+                log_type = "vector"
 
             messages = []
 
-            # 使用python-can读取CAN日志
-            for msg in can.LogReader(file_path):
-                messages.append({
-                    'timestamp': msg.timestamp,
-                    'arbitration_id': msg.arbitration_id,
-                    'is_extended_id': msg.is_extended_id,
-                    'is_remote_frame': msg.is_remote_frame,
-                    'is_error_frame': msg.is_error_frame,
-                    'channel': msg.channel,
-                    'dlc': msg.dlc,
-                    'data': list(msg.data),
-                    'data_hex': msg.data.hex()
-                })
+            if ext == ".asc":
+                messages = self._parse_asc_file(file_path)
+            else:
+                for msg in can.LogReader(file_path):
+                    messages.append(
+                        {
+                            "timestamp": msg.timestamp,
+                            "arbitration_id": msg.arbitration_id,
+                            "is_extended_id": msg.is_extended_id,
+                            "is_remote_frame": msg.is_remote_frame,
+                            "is_error_frame": msg.is_error_frame,
+                            "channel": msg.channel,
+                            "dlc": msg.dlc,
+                            "data": list(msg.data),
+                            "data_hex": msg.data.hex(),
+                        }
+                    )
 
             if not messages:
                 raise FileParserError("No messages found in CAN log file")
 
-            # 统计信息
-            arbitration_ids = set(msg['arbitration_id'] for msg in messages)
+            arbitration_ids = set(msg["arbitration_id"] for msg in messages)
 
             return {
-                'file_type': 'log',
-                'log_type': log_type,
-                'message_count': len(messages),
-                'unique_ids': len(arbitration_ids),
-                'time_range': {
-                    'start': min(msg['timestamp'] for msg in messages),
-                    'end': max(msg['timestamp'] for msg in messages)
+                "file_type": "log",
+                "log_type": log_type,
+                "message_count": len(messages),
+                "unique_ids": len(arbitration_ids),
+                "time_range": {
+                    "start": min(msg["timestamp"] for msg in messages),
+                    "end": max(msg["timestamp"] for msg in messages),
                 },
-                'messages': messages[:100],  # 只返回前100条消息作为示例
-                'arbitration_ids': list(arbitration_ids)
+                "messages": messages,
+                "arbitration_ids": list(arbitration_ids),
             }
 
         except Exception as e:
             raise FileParserError(f"Error reading CAN log file: {str(e)}")
+
+    def _parse_asc_file(self, file_path: str) -> List[Dict[str, Any]]:
+        """
+        解析ASC格式文件
+
+        支持格式：
+        CAN 1.1  0100  8  01 00 00 00 5F 00 00 00
+
+        Args:
+            file_path: 文件路径
+
+        Returns:
+            消息列表
+        """
+        messages = []
+        base_time = 0.0
+        time_increment = 0.01
+
+        with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
+            for line in f:
+                line = line.strip()
+
+                if (
+                    not line
+                    or line.startswith("date")
+                    or line.startswith("time")
+                    or line.startswith("channel")
+                    or line.startswith("Start")
+                ):
+                    continue
+
+                if line.startswith("CAN"):
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        try:
+                            channel = parts[1] if len(parts) > 1 else "1"
+                            arb_id = int(parts[2], 16)
+                            dlc = int(parts[3])
+                            data_bytes = parts[4 : 4 + dlc] if len(parts) > 4 else []
+
+                            data_hex = "".join(data_bytes)
+
+                            messages.append(
+                                {
+                                    "timestamp": base_time + len(messages) * time_increment,
+                                    "arbitration_id": arb_id,
+                                    "is_extended_id": False,
+                                    "is_remote_frame": False,
+                                    "is_error_frame": False,
+                                    "channel": channel,
+                                    "dlc": dlc,
+                                    "data": [int(b, 16) for b in data_bytes],
+                                    "data_hex": data_hex,
+                                }
+                            )
+                        except (ValueError, IndexError):
+                            continue
+
+        return messages
 
 
 # 创建全局解析器实例

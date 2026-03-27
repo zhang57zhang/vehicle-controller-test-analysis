@@ -748,15 +748,26 @@ class AnalysisEngine:
         """获取所有信号的统计摘要"""
         summary = {}
         for name, data in self.signals.items():
-            valid_data = data[~np.isnan(data)] if isinstance(data, np.ndarray) else np.array(data)
-            if len(valid_data) > 0:
-                summary[name] = {
-                    "min": float(np.min(valid_data)),
-                    "max": float(np.max(valid_data)),
-                    "mean": float(np.mean(valid_data)),
-                    "std": float(np.std(valid_data)),
-                    "count": len(valid_data),
-                }
+            try:
+                if isinstance(data, np.ndarray):
+                    if data.dtype.kind in ("i", "f", "u"):
+                        valid_data = data[~np.isnan(data.astype(float))]
+                    else:
+                        continue
+                else:
+                    valid_data = np.array(data, dtype=float)
+                    valid_data = valid_data[~np.isnan(valid_data)]
+
+                if len(valid_data) > 0:
+                    summary[name] = {
+                        "min": float(np.min(valid_data)),
+                        "max": float(np.max(valid_data)),
+                        "mean": float(np.mean(valid_data)),
+                        "std": float(np.std(valid_data)),
+                        "count": len(valid_data),
+                    }
+            except (ValueError, TypeError):
+                continue
         return summary
 
 
