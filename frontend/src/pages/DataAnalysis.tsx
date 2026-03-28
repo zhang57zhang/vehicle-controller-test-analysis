@@ -229,28 +229,10 @@ const DataAnalysis: React.FC = () => {
     } finally {
       setLoadingOscilloscope(false)
     }
-  }
-      }
+}
 
-      if (signalsToLoad.length === 0) {
-        showToast('error', '没有可用的信号数据')
-        return
-      }
-      
-      const result = await analysisApi.getSignalTimeSeries(testDataId, signalsToLoad, {
-        maxPoints: 10000
-      })
-      
-      if (result.status === 'success' && result.data) {
-        setOscilloscopeData(result.data)
-      }
-    } catch (error) {
-      showToast('error', '加载示波器数据失败')
-      console.error('加载示波器数据失败:', error)
-    } finally {
-      setLoadingOscilloscope(false)
-    }
-  }
+
+
 
   const handleCreateSignalMapping = () => {
     setEditingSignalMapping(null)

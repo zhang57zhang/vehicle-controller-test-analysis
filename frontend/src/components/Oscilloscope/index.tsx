@@ -84,8 +84,8 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
   const chartRef = useRef<ReactECharts>(null)
   const [signalConfigs, setSignalConfigs] = useState<SignalConfig[]>([])
   const [selectedSignals, setSelectedSignals] = useState<string[]>([])
-  const [xRange, setXRange] = useState<[number, number]>([0, 0])
-  const [originalXRange, setOriginalXRange] = useState<[number, number]>([0, 0])
+  const [xRange, setXRange] = useState<[number, number]>([0, 1])
+  const [originalXRange, setOriginalXRange] = useState<[number, number]>([0, 1])
   const [isPanning, setIsPanning] = useState(false)
   const [showCursor, setShowCursor] = useState(false)
   const [cursorMode, setCursorMode] = useState<'single' | 'differential'>('single')
@@ -101,30 +101,53 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
   const [separateYAxisMode, setSeparateYAxisMode] = useState(true)
   const [showStatistics, setShowStatistics] = useState(true)
 
-  const signalNames = useMemo(() => Object.keys(data.signals), [data.signals])
-
-  useEffect(() => {
-    if (data.time && data.time.length > 0) {
-      const minTime = Math.min(...data.time)
-      const maxTime = Math.max(...data.time)
-      setXRange([minTime, maxTime])
-      setOriginalXRange([minTime, maxTime])
+  const signalNames = useMemo(() => {
+    if (!data || !data.signals || typeof data.signals !== 'object') {
+      return []
     }
-  }, [data.time])
+    return Object.keys(data.signals).filter(key => {
+      const signalData = data.signals[key]
+      return Array.isArray(signalData) && signalData.length > 0
+    })
+  }, [data])
+
+  const hasValidData = useMemo(() => {
+    return data && 
+           data.time && 
+           Array.isArray(data.time) && 
+           data.time.length > 0 &&
+           signalNames.length > 0
+  }, [data, signalNames])
 
   useEffect(() => {
+    if (hasValidData && data.time && data.time.length > 0) {
+      const validTimes = data.time.filter(t => typeof t === 'number' && !isNaN(t))
+      if (validTimes.length > 0) {
+        const minTime = Math.min(...validTimes)
+        const maxTime = Math.max(...validTimes)
+        setXRange([minTime, maxTime])
+        setOriginalXRange([minTime, maxTime])
+      }
+    }
+  }, [hasValidData, data.time])
+
+  useEffect(() => {
+    if (!hasValidData || signalNames.length === 0) {
+      setSignalConfigs([])
+      return
+    }
     const configs: SignalConfig[] = signalNames.map((name, index) => ({
       name,
       color: signalColors[name] || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
       visible: false,
-      yMin: data.statistics[name]?.min || 0,
-      yMax: data.statistics[name]?.max || 1,
+      yMin: data.statistics?.[name]?.min ?? 0,
+      yMax: data.statistics?.[name]?.max ?? 1,
       yOffset: 0,
       yScale: 1,
       separateYAxis: separateYAxisMode
     }))
     setSignalConfigs(configs)
-  }, [signalNames, data.statistics, signalColors, separateYAxisMode])
+  }, [signalNames, data.statistics, signalColors, separateYAxisMode, hasValidData])
 
   const handleSignalToggle = (signalName: string) => {
     setSignalConfigs(prev => {
@@ -376,19 +399,46 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
   }, [filteredSignalConfigs])
 
   const chartOption = useMemo(() => {
+    if (!hasValidData || signalConfigs.length === 0) {
+      return {
+        title: {
+          text: '暂无数据',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#999', fontSize: 14 }
+        }
+      }
+    }
+
     const visibleConfigs = signalConfigs.filter(c => c.visible && selectedSignals.includes(c.name))
     
+    if (visibleConfigs.length === 0) {
+      return {
+        title: {
+          text: '请选择要显示的信号',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#999', fontSize: 14 }
+        },
+        grid: { left: '10%', right: '10%', top: '10%', bottom: '10%' }
+      }
+    }
+
     const series: any[] = visibleConfigs.map((config, index) => {
-      const signalData = data.signals[config.name] || []
+      const signalData = data.signals?.[config.name] || []
       const timeData = data.time || []
       
-      const chartData = timeData.map((t, i) => [t, signalData[i]])
+      const chartData = timeData.map((t, i) => {
+        const val = signalData[i]
+        return [t, typeof val === 'number' && !isNaN(val) ? val : null]
+      }).filter((d): d is [number, number | null] => d[0] !== undefined)
       
       const seriesConfig: any = {
         name: config.name,
         type: 'line',
         data: chartData,
         showSymbol: false,
+        connectNulls: true,
         lineStyle: {
           width: 1.5,
           color: config.color
@@ -408,10 +458,21 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
       return seriesConfig
     })
 
+    if (series.length === 0) {
+      return {
+        title: {
+          text: '无有效信号数据',
+          left: 'center',
+          top: 'center',
+          textStyle: { color: '#999', fontSize: 14 }
+        }
+      }
+    }
+
     const yAxisConfigs = separateYAxisMode 
       ? visibleConfigs.map((config, index) => {
-          const stats = data.statistics[config.name]
-          const padding = stats ? (stats.max - stats.min) * 0.1 : 1
+          const stats = data.statistics?.[config.name]
+          const padding = stats && stats.max !== stats.min ? (stats.max - stats.min) * 0.1 : 1
           return {
             type: 'value' as const,
             name: config.name,
@@ -427,7 +488,7 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
             },
             splitLine: {
               show: index === 0,
-              lineStyle: { type: 'dashed' as any, opacity: 0.3 }
+              lineStyle: { type: 'dashed' as const, opacity: 0.3 }
             },
             min: stats ? stats.min - padding : undefined,
             max: stats ? stats.max + padding : undefined
@@ -439,7 +500,7 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
           position: 'left' as const,
           splitLine: {
             show: true,
-            lineStyle: { type: 'dashed' as any, opacity: 0.3 }
+            lineStyle: { type: 'dashed' as const, opacity: 0.3 }
           }
         }]
 
@@ -524,16 +585,24 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
       dataZoom: [
         {
           type: 'inside',
-          start: ((xRange[0] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100,
-          end: ((xRange[1] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100,
+          start: originalXRange[0] !== originalXRange[1] 
+            ? ((xRange[0] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100 
+            : 0,
+          end: originalXRange[0] !== originalXRange[1] 
+            ? ((xRange[1] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100 
+            : 100,
           zoomOnMouseWheel: true,
           moveOnMouseMove: isPanning
         },
         {
           type: 'slider',
           show: true,
-          start: ((xRange[0] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100,
-          end: ((xRange[1] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100,
+          start: originalXRange[0] !== originalXRange[1] 
+            ? ((xRange[0] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100 
+            : 0,
+          end: originalXRange[0] !== originalXRange[1] 
+            ? ((xRange[1] - originalXRange[0]) / (originalXRange[1] - originalXRange[0])) * 100 
+            : 100,
           height: 30,
           bottom: 10
         }
@@ -553,7 +622,7 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
       },
       series
     }
-  }, [signalConfigs, selectedSignals, data, separateYAxisMode, xRange, originalXRange, cursors, isPanning])
+  }, [hasValidData, signalConfigs, selectedSignals, data, separateYAxisMode, xRange, originalXRange, cursors, isPanning])
 
   const onChartEvents = useMemo(() => ({
     click: handleChartClick,
@@ -562,12 +631,13 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
   }), [handleChartClick, handleDataZoom, handleMouseMove])
 
   const visibleStats = useMemo(() => {
+    if (!data?.statistics) return []
     return selectedSignals.map(name => ({
       name,
-      stats: data.statistics[name],
+      stats: data.statistics?.[name],
       color: signalConfigs.find(c => c.name === name)?.color || DEFAULT_COLORS[0]
-    })).filter(s => s.stats)
-  }, [selectedSignals, data.statistics, signalConfigs])
+    })).filter((s): s is { name: string; stats: SignalStatistics; color: string } => !!s.stats)
+  }, [selectedSignals, data?.statistics, signalConfigs])
 
   return (
     <div className="flex h-full w-full gap-4">
