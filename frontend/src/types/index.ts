@@ -44,6 +44,36 @@ export interface DBCFile {
   uploaded_at: string
 }
 
+export interface DBCSignal {
+  name: string
+  full_name: string
+  unit?: string
+  minimum?: number
+  maximum?: number
+  scale: number
+  offset: number
+  comment?: string
+  message_name: string
+  dbc_file_id: number
+}
+
+export interface DBCMessage {
+  dbc_file_id: number
+  dbc_file_name: string
+  frame_id: number
+  name: string
+  length: number
+  cycle_time?: number
+  signals: DBCSignal[]
+}
+
+export interface DBCSignalsResponse {
+  messages: DBCMessage[]
+  signals: DBCSignal[]
+  signal_count: number
+  message_count: number
+}
+
 export interface SignalMapping {
   id: number
   project_id: number

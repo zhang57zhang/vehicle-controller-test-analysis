@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { testDataApi, signalMappingApi, customSignalApi, analysisApi } from '../services/api'
+import { testDataApi, signalMappingApi, customSignalApi, analysisApi, dbcApi } from '../services/api'
 import { useProjectStore } from '../stores/project'
-import type { TestDataFile, SignalMapping, CustomSignal } from '../types'
+import type { TestDataFile, SignalMapping, CustomSignal, DBCMessage } from '../types'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -120,6 +120,7 @@ const DataAnalysis: React.FC = () => {
     statistics: Record<string, SignalSummary>
   } | null>(null)
   const [loadingOscilloscope, setLoadingOscilloscope] = useState(false)
+  const [dbcMessages, setDbcMessages] = useState<DBCMessage[]>([])
 
   const [signalMappingDialogOpen, setSignalMappingDialogOpen] = useState(false)
   const [editingSignalMapping, setEditingSignalMapping] = useState<SignalMapping | null>(null)
@@ -160,15 +161,17 @@ const DataAnalysis: React.FC = () => {
       setLoadingMappings(true)
       setLoadingCustomSignals(true)
 
-      const [testData, mappings, signals] = await Promise.all([
+      const [testData, mappings, signals, dbcData] = await Promise.all([
         testDataApi.getTestDataList(currentProject.id),
         signalMappingApi.getSignalMappings(currentProject.id),
         customSignalApi.getCustomSignals(currentProject.id),
+        dbcApi.getDBCSignals(currentProject.id).catch(() => ({ messages: [], signals: [], signal_count: 0, message_count: 0 }))
       ])
 
       setTestDataList(testData)
       setSignalMappings(mappings)
       setCustomSignals(signals)
+      setDbcMessages(dbcData.messages || [])
     } catch (error) {
       showToast('error', '加载数据失败')
       console.error('加载数据失败:', error)
@@ -199,18 +202,19 @@ const DataAnalysis: React.FC = () => {
     try {
       setLoadingOscilloscope(true)
       
-      if (availableSignals.length === 0) {
+      let signalsToLoad: string[] = availableSignals
+      
+      if (signalsToLoad.length === 0) {
         try {
           const data = await analysisApi.getAvailableSignals(testDataId)
-          setAvailableSignals(data.signals || [])
+          signalsToLoad = data.signals || []
+          setAvailableSignals(signalsToLoad)
           setSignalSummary(data.summary || {})
         } catch (error) {
           console.error('加载信号列表失败:', error)
-          return
         }
       }
 
-      const signalsToLoad = availableSignals.length > 0 ? availableSignals : Object.keys(signalSummary)
       if (signalsToLoad.length === 0) {
         showToast('error', '没有可用的信号数据')
         return
@@ -229,7 +233,7 @@ const DataAnalysis: React.FC = () => {
     } finally {
       setLoadingOscilloscope(false)
     }
-}
+  }
 
 
 
@@ -688,17 +692,22 @@ const DataAnalysis: React.FC = () => {
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  信号示波器
+                  DBC信号示波器
                 </CardTitle>
                 <CardDescription>
                   显示 {Object.keys(oscilloscopeData.signals).length} 个信号 | 
+                  DBC消息: {dbcMessages.length} 个 | 
                   时间范围: {oscilloscopeData.time.length > 0 ? 
                     `${oscilloscopeData.time[0].toFixed(3)}s - ${oscilloscopeData.time[oscilloscopeData.time.length-1].toFixed(3)}s` : 
                     'N/A'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="h-[calc(100%-80px)]">
-                <Oscilloscope data={oscilloscopeData} />
+                <Oscilloscope 
+                  data={oscilloscopeData} 
+                  dbcMessages={dbcMessages}
+                  showDBCMode={dbcMessages.length > 0}
+                />
               </CardContent>
             </Card>
           ) : (

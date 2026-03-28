@@ -79,6 +79,16 @@ export const dbcApi = {
   deleteDBC: async (id: ID) => {
     await api.delete(`/dbc/${id}`)
   },
+
+  getDBCSignals: async (projectId: ID) => {
+    const response = await api.get(`/projects/${projectId}/dbc-signals`)
+    return response.data
+  },
+
+  getDBCMessages: async (dbcId: ID) => {
+    const response = await api.get(`/dbc/${dbcId}/messages`)
+    return response.data
+  }
 }
 
 // 信号映射API

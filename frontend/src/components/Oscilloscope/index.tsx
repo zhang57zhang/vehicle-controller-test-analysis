@@ -38,6 +38,29 @@ interface SignalStatistics {
   count: number
 }
 
+interface DBCSignal {
+  name: string
+  full_name: string
+  unit?: string
+  minimum?: number
+  maximum?: number
+  scale: number
+  offset: number
+  comment?: string
+  message_name: string
+  dbc_file_id: number
+}
+
+interface DBCMessage {
+  dbc_file_id: number
+  dbc_file_name: string
+  frame_id: number
+  name: string
+  length: number
+  cycle_time?: number
+  signals: DBCSignal[]
+}
+
 interface Cursor {
   id: string
   time: number
@@ -56,6 +79,7 @@ interface CursorMeasurement {
 
 interface SignalConfig {
   name: string
+  fullName?: string
   color: string
   visible: boolean
   yMin: number
@@ -63,6 +87,8 @@ interface SignalConfig {
   yOffset: number
   yScale: number
   separateYAxis: boolean
+  unit?: string
+  messageName?: string
 }
 
 const DEFAULT_COLORS = [
@@ -74,12 +100,16 @@ interface OscilloscopeProps {
   data: SignalData
   signalColors?: Record<string, string>
   onZoomChange?: (zoomState: { xMin: number; xMax: number }) => void
+  dbcMessages?: DBCMessage[]
+  showDBCMode?: boolean
 }
 
 const Oscilloscope: React.FC<OscilloscopeProps> = ({
   data,
   signalColors = {},
-  onZoomChange
+  onZoomChange,
+  dbcMessages,
+  showDBCMode = false
 }) => {
   const chartRef = useRef<ReactECharts>(null)
   const [signalConfigs, setSignalConfigs] = useState<SignalConfig[]>([])
@@ -382,21 +412,37 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
   const filteredSignalConfigs = useMemo(() => {
     if (!searchTerm) return signalConfigs
     return signalConfigs.filter(c => 
-      c.name.toLowerCase().includes(searchTerm.toLowerCase())
+      c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (c.fullName && c.fullName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (c.messageName && c.messageName.toLowerCase().includes(searchTerm.toLowerCase()))
     )
   }, [signalConfigs, searchTerm])
 
   const groupedSignals = useMemo(() => {
     const groups: Record<string, SignalConfig[]> = {}
-    filteredSignalConfigs.forEach(config => {
-      const prefix = config.name.split('_')[0] || 'Other'
-      if (!groups[prefix]) {
-        groups[prefix] = []
+    
+    if (showDBCMode && dbcMessages && dbcMessages.length > 0) {
+      dbcMessages.forEach(msg => {
+        const msgSignals = filteredSignalConfigs.filter(c => c.messageName === msg.name)
+        if (msgSignals.length > 0) {
+          groups[msg.name] = msgSignals
+        }
+      })
+      const unmatchedSignals = filteredSignalConfigs.filter(c => !c.messageName || !dbcMessages.find(m => m.name === c.messageName))
+      if (unmatchedSignals.length > 0) {
+        groups['Other'] = unmatchedSignals
       }
-      groups[prefix].push(config)
-    })
+    } else {
+      filteredSignalConfigs.forEach(config => {
+        const groupKey = config.messageName || config.name.split('_')[0] || 'Other'
+        if (!groups[groupKey]) {
+          groups[groupKey] = []
+        }
+        groups[groupKey].push(config)
+      })
+    }
     return groups
-  }, [filteredSignalConfigs])
+  }, [filteredSignalConfigs, showDBCMode, dbcMessages])
 
   const chartOption = useMemo(() => {
     if (!hasValidData || signalConfigs.length === 0) {
@@ -673,8 +719,8 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
                   className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-muted/50 rounded text-xs font-medium text-muted-foreground"
                   onClick={() => setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))}
                 >
-                  {expandedGroups[group] ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  <span>{group}</span>
+                  {expandedGroups[group] !== false ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  <span className="font-semibold">{group}</span>
                   <span className="ml-auto text-[10px]">({configs.length})</span>
                 </div>
                 {(expandedGroups[group] !== false) && configs.map(config => (
@@ -690,12 +736,20 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
                       style={{ accentColor: config.color }}
                     />
                     <div
-                      className="w-3 h-3 rounded-sm"
+                      className="w-3 h-3 rounded-sm flex-shrink-0"
                       style={{ backgroundColor: config.color }}
                     />
-                    <span className="text-xs truncate flex-1" title={config.name}>
-                      {config.name}
-                    </span>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs truncate font-medium" title={config.fullName || config.name}>
+                        {config.name}
+                      </div>
+                      {config.unit && (
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {config.unit}
+                          {config.messageName && showDBCMode && ` | ${config.messageName}`}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
