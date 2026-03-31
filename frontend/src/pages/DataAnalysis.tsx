@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { testDataApi, signalMappingApi, customSignalApi, analysisApi, dbcApi } from '../services/api'
 import { useProjectStore } from '../stores/project'
-import type { TestDataFile, SignalMapping, CustomSignal, DBCMessage } from '../types'
+import type { TestDataFile, SignalMapping, CustomSignal, DBCNode, DBCFileInfo } from '../types'
 
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -107,7 +107,9 @@ const DataAnalysis: React.FC = () => {
     statistics: Record<string, SignalSummary>
   } | null>(null)
   const [loadingOscilloscope, setLoadingOscilloscope] = useState(false)
-  const [dbcMessages, setDbcMessages] = useState<DBCMessage[]>([])
+  const [dbcNodes, setDbcNodes] = useState<DBCNode[]>([])
+  const [dbcFiles, setDbcFiles] = useState<DBCFileInfo[]>([])
+  const [selectedDbcFileId, setSelectedDbcFileId] = useState<number | null>(null)
 
   const [signalMappingDialogOpen, setSignalMappingDialogOpen] = useState(false)
   const [editingSignalMapping, setEditingSignalMapping] = useState<SignalMapping | null>(null)
@@ -152,13 +154,14 @@ const DataAnalysis: React.FC = () => {
         testDataApi.getTestDataList(currentProject.id),
         signalMappingApi.getSignalMappings(currentProject.id),
         customSignalApi.getCustomSignals(currentProject.id),
-        dbcApi.getDBCSignals(currentProject.id).catch(() => ({ messages: [], signals: [], signal_count: 0, message_count: 0 }))
+        dbcApi.getDBCSignals(currentProject.id).catch(() => ({ nodes: [], dbc_files: [], signal_count: 0, message_count: 0, node_count: 0 }))
       ])
 
       setTestDataList(testData)
       setSignalMappings(mappings)
       setCustomSignals(signals)
-      setDbcMessages(dbcData.messages || [])
+      setDbcNodes(dbcData.nodes || [])
+      setDbcFiles(dbcData.dbc_files || [])
     } catch (error) {
       showToast('error', '加载数据失败')
       console.error('加载数据失败:', error)
@@ -701,53 +704,97 @@ const DataAnalysis: React.FC = () => {
                 请先在"分析配置"中选择测试数据
               </CardContent>
             </Card>
-          ) : loadingOscilloscope ? (
-            <Card>
-              <CardContent className="py-12 text-center text-muted-foreground">
-                <div className="flex items-center justify-center gap-2">
-                  <Activity className="h-4 w-4 animate-pulse" />
-                  正在加载示波器数据...
-                </div>
-              </CardContent>
-            </Card>
-          ) : oscilloscopeData && Object.keys(oscilloscopeData.signals).length > 0 ? (
-            <Card className="h-[calc(100vh-280px)]">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  DBC信号示波器
-                </CardTitle>
-                <CardDescription>
-                  显示 {Object.keys(oscilloscopeData.signals).length} 个信号 | 
-                  DBC消息: {dbcMessages.length} 个 | 
-                  时间范围: {oscilloscopeData.time.length > 0 ? 
-                    `${oscilloscopeData.time[0].toFixed(3)}s - ${oscilloscopeData.time[oscilloscopeData.time.length-1].toFixed(3)}s` : 
-                    'N/A'}
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-80px)]">
-                <Oscilloscope 
-                  data={oscilloscopeData} 
-                  dbcMessages={dbcMessages}
-                  showDBCMode={dbcMessages.length > 0}
-                />
-              </CardContent>
-            </Card>
           ) : (
-            <Card>
-              <CardContent className="py-12 text-center">
-                <div className="text-muted-foreground mb-4">
-                  点击下方按钮加载示波器数据
-                </div>
-                <Button
-                  onClick={() => loadOscilloscopeData(analysisConfig.test_data_id!)}
-                  disabled={loadingOscilloscope}
-                >
-                  <Activity className="mr-2 h-4 w-4" />
-                  加载示波器数据
-                </Button>
-              </CardContent>
-            </Card>
+            <>
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">DBC文件选择</CardTitle>
+                  <CardDescription>
+                    选择DBC文件查看信号定义，勾选信号后加载时序数据显示波形
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4">
+                    <Select
+                      value={selectedDbcFileId ? String(selectedDbcFileId) : 'all'}
+                      onValueChange={(value) => setSelectedDbcFileId(value === 'all' ? null : parseInt(value, 10))}
+                    >
+                      <SelectTrigger className="w-[300px]">
+                        <SelectValue placeholder="选择DBC文件" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">全部DBC文件 ({dbcFiles.length})</SelectItem>
+                        {dbcFiles.map((file) => (
+                          <SelectItem key={file.id} value={String(file.id)}>
+                            {file.file_name} ({file.signal_count} 信号)
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="text-sm text-muted-foreground">
+                      {dbcFiles.length > 0 ? (
+                        <>
+                          共 {dbcFiles.reduce((sum, f) => sum + f.signal_count, 0)} 个信号 | 
+                          {dbcFiles.reduce((sum, f) => sum + f.message_count, 0)} 个消息 | 
+                          {dbcFiles.reduce((sum, f) => sum + f.node_count, 0)} 个节点
+                        </>
+                      ) : (
+                        '暂无DBC文件，请先上传DBC文件'
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {loadingOscilloscope ? (
+                <Card>
+                  <CardContent className="py-12 text-center text-muted-foreground">
+                    <div className="flex items-center justify-center gap-2">
+                      <Activity className="h-4 w-4 animate-pulse" />
+                      正在加载示波器数据...
+                    </div>
+                  </CardContent>
+                </Card>
+              ) : oscilloscopeData && Object.keys(oscilloscopeData.signals).length > 0 ? (
+                <Card className="h-[calc(100vh-400px)]">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Activity className="h-4 w-4" />
+                      DBC信号示波器
+                    </CardTitle>
+                    <CardDescription>
+                      显示 {Object.keys(oscilloscopeData.signals).length} 个信号 | 
+                      DBC节点: {dbcNodes.length} 个 | 
+                      时间范围: {oscilloscopeData.time.length > 0 ? 
+                        `${oscilloscopeData.time[0].toFixed(3)}s - ${oscilloscopeData.time[oscilloscopeData.time.length-1].toFixed(3)}s` : 
+                        'N/A'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="h-[calc(100%-80px)]">
+                    <Oscilloscope 
+                      data={oscilloscopeData} 
+                      dbcNodes={selectedDbcFileId ? dbcNodes.filter(n => n.dbc_file_id === selectedDbcFileId) : dbcNodes}
+                      showDBCMode={dbcNodes.length > 0}
+                    />
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <div className="text-muted-foreground mb-4">
+                      点击下方按钮加载示波器数据
+                    </div>
+                    <Button
+                      onClick={() => loadOscilloscopeData(analysisConfig.test_data_id!)}
+                      disabled={loadingOscilloscope}
+                    >
+                      <Activity className="mr-2 h-4 w-4" />
+                      加载示波器数据
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </TabsContent>
 

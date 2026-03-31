@@ -433,14 +433,14 @@ def get_dbc_signals(dbc_id: int, db: Session = Depends(get_db)) -> Dict[str, Lis
 @router.get("/projects/{project_id}/dbc-signals")
 def get_project_dbc_signals(project_id: int, db: Session = Depends(get_db)) -> Dict[str, Any]:
     """
-    获取项目的DBC信号列表（按Message分组）
+    获取项目的DBC信号列表（按Node->Message->Signal三层结构）
 
     Args:
         project_id: 项目ID
         db: 数据库会话
 
     Returns:
-        DBC信号列表，按Message分组
+        DBC信号列表，按Node->Message->Signal三层结构
 
     Raises:
         HTTPException 404: 项目不存在时
@@ -457,10 +457,16 @@ def get_project_dbc_signals(project_id: int, db: Session = Depends(get_db)) -> D
         dbc_files = db.query(DBCFileModel).filter(DBCFileModel.project_id == project_id).all()
 
         if not dbc_files:
-            return {"messages": [], "signals": [], "signal_count": 0}
+            return {
+                "nodes": [],
+                "dbc_files": [],
+                "signal_count": 0,
+                "message_count": 0,
+                "node_count": 0,
+            }
 
-        all_messages = []
-        all_signals = []
+        all_nodes = []
+        dbc_file_list = []
 
         for dbc_file in dbc_files:
             file_path = Path(dbc_file.file_path)
@@ -470,50 +476,56 @@ def get_project_dbc_signals(project_id: int, db: Session = Depends(get_db)) -> D
             try:
                 parser = DBCParser(str(file_path))
                 parser.load()
-                messages = parser.get_messages()
+                structure = parser.get_dbc_structure()
 
-                for msg in messages:
-                    msg_info = {
+                dbc_file_list.append(
+                    {
+                        "id": dbc_file.id,
+                        "file_name": dbc_file.file_name,
+                        "node_count": structure["node_count"],
+                        "message_count": structure["message_count"],
+                        "signal_count": structure["signal_count"],
+                    }
+                )
+
+                for node in structure["nodes"]:
+                    node_info = {
                         "dbc_file_id": dbc_file.id,
                         "dbc_file_name": dbc_file.file_name,
-                        "frame_id": msg["frame_id"],
-                        "name": msg["name"],
-                        "length": msg["length"],
-                        "cycle_time": msg.get("cycle_time"),
-                        "signals": [],
+                        "name": node["name"],
+                        "messages": [],
                     }
 
-                    for sig in msg["signals"]:
-                        signal_info = {
-                            "name": sig["name"],
-                            "full_name": f"{msg['name']}.{sig['name']}",
-                            "unit": sig.get("unit"),
-                            "minimum": sig.get("minimum"),
-                            "maximum": sig.get("maximum"),
-                            "scale": sig.get("scale", 1),
-                            "offset": sig.get("offset", 0),
-                            "comment": sig.get("comment"),
-                            "message_name": msg["name"],
-                            "dbc_file_id": dbc_file.id,
+                    for msg_name, msg_data in node["messages"].items():
+                        msg_info = {
+                            "name": msg_name,
+                            "frame_id": msg_data["frame_id"],
+                            "length": msg_data["length"],
+                            "cycle_time": msg_data.get("cycle_time"),
+                            "comment": msg_data.get("comment"),
+                            "signals": msg_data["signals"],
                         }
-                        msg_info["signals"].append(signal_info)
-                        all_signals.append(signal_info)
+                        node_info["messages"].append(msg_info)
 
-                    all_messages.append(msg_info)
+                    all_nodes.append(node_info)
 
             except (FileFormatError, ParseError) as e:
                 logger.warning(f"Failed to parse DBC file {dbc_file.file_name}: {str(e)}")
                 continue
 
+        total_signals = sum(len(sig["signals"]) for node in all_nodes for msg in node["messages"])
+        total_messages = sum(len(node["messages"]) for node in all_nodes)
+
         logger.info(
-            f"Retrieved {len(all_signals)} DBC signals from {len(all_messages)} messages for project {project_id}"
+            f"Retrieved {total_signals} DBC signals from {total_messages} messages for project {project_id}"
         )
 
         return {
-            "messages": all_messages,
-            "signals": all_signals,
-            "signal_count": len(all_signals),
-            "message_count": len(all_messages),
+            "nodes": all_nodes,
+            "dbc_files": dbc_file_list,
+            "signal_count": total_signals,
+            "message_count": total_messages,
+            "node_count": len(all_nodes),
         }
 
     except HTTPException:
@@ -523,6 +535,51 @@ def get_project_dbc_signals(project_id: int, db: Session = Depends(get_db)) -> D
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to get project DBC signals",
+        )
+
+
+@router.get("/dbc/{dbc_id}/structure")
+def get_dbc_structure(dbc_id: int, db: Session = Depends(get_db)) -> Dict[str, Any]:
+    """
+    获取DBC文件的完整结构（Node -> Message -> Signal）
+
+    Args:
+        dbc_id: DBC文件ID
+        db: 数据库会话
+
+    Returns:
+        DBC结构树
+    """
+    try:
+        dbc_file = db.query(DBCFileModel).filter(DBCFileModel.id == dbc_id).first()
+
+        if not dbc_file:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail=f"DBC file with id {dbc_id} not found"
+            )
+
+        file_path = Path(dbc_file.file_path)
+        if not file_path.exists():
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="DBC file not found on disk"
+            )
+
+        parser = DBCParser(str(file_path))
+        parser.load()
+        structure = parser.get_dbc_structure()
+
+        return {"dbc_id": dbc_id, "file_name": dbc_file.file_name, **structure}
+
+    except HTTPException:
+        raise
+    except FileFormatError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except ParseError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error getting DBC structure: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to get DBC structure"
         )
 
 

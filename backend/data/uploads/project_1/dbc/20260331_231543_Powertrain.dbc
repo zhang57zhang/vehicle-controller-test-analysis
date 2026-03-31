@@ -1,0 +1,205 @@
+VERSION ""
+
+NS_ :
+    NS_DESC_
+    CM_
+    BA_DEF_
+    BA_
+    VAL_
+    CAT_DEF_
+    CAT_
+    FILTER
+    BA_DEF_DEF_
+    EV_DATA_
+    ENVVAR_DATA_
+    SGTYPE_
+    SGTYPE_VAL_
+    BA_DEF_SGTYPE_
+    BA_SGTYPE_
+    SIG_TYPE_REF_
+    VAL_TABLE_
+    SIG_GROUP_
+    SIG_VALTYPE_
+    SIGTYPE_VALTYPE_
+    BO_TX_BU_
+    BA_DEF_REL_
+    BA_REL_
+    BA_DEF_DEF_REL_
+    BU_SG_REL_
+    BU_EV_REL_
+    BU_BO_REL_
+    SG_MUL_VAL_
+
+BS_:
+
+BU_: VCU MCU BMS DCDC
+
+BO_ 256 VCU_StateFrame: 8 VCU
+ SG_ VCU_State : 0|8@1+ (1,0) [0|255] "" MCU,BMS,DCDC
+ SG_ VCU_PowerMode : 8|3@1+ (1,0) [0|7] "" MCU,BMS,DCDC
+ SG_ VCU_FaultLevel : 11|2@1+ (1,0) [0|3] "" MCU,BMS,DCDC
+ SG_ VCU_RollingCounter : 16|4@1+ (1,0) [0|15] "" MCU,BMS,DCDC
+ SG_ VCU_Checksum : 20|8@1+ (1,0) [0|255] "" MCU,BMS,DCDC
+
+BO_ 257 VCU_TorqueCmd: 8 VCU
+ SG_ TargetTorque : 0|16@1- (1,0) [-32768|32767] "Nm" MCU
+ SG_ TorqueLimit : 16|16@1- (1,0) [-32768|32767] "Nm" MCU
+ SG_ DirectionCmd : 32|2@1+ (1,0) [0|3] "" MCU
+ SG_ VCU_RollingCounter : 48|4@1+ (1,0) [0|15] "" MCU
+ SG_ VCU_Checksum : 52|8@1+ (1,0) [0|255] "" MCU
+
+BO_ 258 VCU_SpeedCmd: 8 VCU
+ SG_ TargetSpeed : 0|16@1+ (1,0) [0|65535] "rpm" MCU
+ SG_ SpeedLimit : 16|16@1+ (1,0) [0|65535] "rpm" MCU
+ SG_ AccelPedalPos : 32|8@1+ (0.4,0) [0|100] "%" MCU,BMS
+ SG_ BrakePedalPos : 40|8@1+ (0.4,0) [0|100] "%" MCU,BMS
+ SG_ VCU_RollingCounter : 48|4@1+ (1,0) [0|15] "" MCU
+ SG_ VCU_Checksum : 52|8@1+ (1,0) [0|255] "" MCU
+
+BO_ 259 VCU_BatteryCmd: 8 VCU
+ SG_ ChargeRequest : 0|1@1+ (1,0) [0|1] "" BMS
+ SG_ DischargeRequest : 1|1@1+ (1,0) [0|1] "" BMS
+ SG_ MaxChargeCurrent : 8|16@1- (0.1,0) [-3276.8|3276.7] "A" BMS
+ SG_ MaxDischargeCurrent : 24|16@1- (0.1,0) [-3276.8|3276.7] "A" BMS
+ SG_ VCU_RollingCounter : 48|4@1+ (1,0) [0|15] "" BMS
+ SG_ VCU_Checksum : 52|8@1+ (1,0) [0|255] "" BMS
+
+BO_ 260 VCU_DCDC_Cmd: 8 VCU
+ SG_ DCDC_Enable : 0|1@1+ (1,0) [0|1] "" DCDC
+ SG_ DCDC_TargetVoltage : 8|16@1+ (0.01,0) [0|655.35] "V" DCDC
+ SG_ DCDC_TargetCurrent : 24|16@1+ (0.1,0) [0|6553.5] "A" DCDC
+ SG_ VCU_RollingCounter : 48|4@1+ (1,0) [0|15] "" DCDC
+ SG_ VCU_Checksum : 52|8@1+ (1,0) [0|255] "" DCDC
+
+BO_ 512 MCU_StateFrame: 8 MCU
+ SG_ MCU_State : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ MCU_Temperature : 8|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ MCU_FaultLevel : 16|2@1+ (1,0) [0|3] "" VCU
+ SG_ MCU_Ready : 18|1@1+ (1,0) [0|1] "" VCU
+ SG_ MCU_RollingCounter : 24|4@1+ (1,0) [0|15] "" VCU
+ SG_ MCU_Checksum : 28|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 513 MCU_TorqueFeedback: 8 MCU
+ SG_ ActualTorque : 0|16@1- (1,0) [-32768|32767] "Nm" VCU
+ SG_ MaxTorque : 16|16@1- (1,0) [-32768|32767] "Nm" VCU
+ SG_ MinTorque : 32|16@1- (1,0) [-32768|32767] "Nm" VCU
+ SG_ MCU_RollingCounter : 48|4@1+ (1,0) [0|15] "" VCU
+ SG_ MCU_Checksum : 52|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 514 MCU_SpeedFeedback: 8 MCU
+ SG_ ActualSpeed : 0|16@1+ (1,0) [0|65535] "rpm" VCU
+ SG_ MotorTemp : 16|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ InverterTemp : 24|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ MCU_RollingCounter : 32|4@1+ (1,0) [0|15] "" VCU
+ SG_ MCU_Checksum : 36|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 515 MCU_PowerFeedback: 8 MCU
+ SG_ ActualPower : 0|16@1- (0.1,0) [-3276.8|3276.7] "kW" VCU
+ SG_ Efficiency : 16|8@1+ (0.5,0) [0|127.5] "%" VCU
+ SG_ MCU_RollingCounter : 24|4@1+ (1,0) [0|15] "" VCU
+ SG_ MCU_Checksum : 28|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 768 BMS_StateFrame: 8 BMS
+ SG_ BMS_State : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ BMS_FaultLevel : 8|2@1+ (1,0) [0|3] "" VCU
+ SG_ ContactorState : 10|2@1+ (1,0) [0|3] "" VCU
+ SG_ BMS_RollingCounter : 16|4@1+ (1,0) [0|15] "" VCU
+ SG_ BMS_Checksum : 20|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 769 BMS_Voltage: 8 BMS
+ SG_ PackVoltage : 0|16@1+ (0.1,0) [0|6553.5] "V" VCU
+ SG_ MaxCellVoltage : 16|16@1+ (0.001,0) [0|6.5535] "V" VCU
+ SG_ MinCellVoltage : 32|16@1+ (0.001,0) [0|6.5535] "V" VCU
+ SG_ BMS_RollingCounter : 48|4@1+ (1,0) [0|15] "" VCU
+ SG_ BMS_Checksum : 52|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 770 BMS_Current: 8 BMS
+ SG_ PackCurrent : 0|16@1- (0.1,-3276.8) [-3276.8|3276.7] "A" VCU
+ SG_ MaxChargeCurrent : 16|16@1- (0.1,0) [-3276.8|3276.7] "A" VCU
+ SG_ MaxDischargeCurrent : 32|16@1- (0.1,0) [-3276.8|3276.7] "A" VCU
+ SG_ BMS_RollingCounter : 48|4@1+ (1,0) [0|15] "" VCU
+ SG_ BMS_Checksum : 52|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 771 BMS_SOC: 8 BMS
+ SG_ SOC : 0|8@1+ (0.5,0) [0|127.5] "%" VCU
+ SG_ SOH : 8|8@1+ (0.5,0) [0|127.5] "%" VCU
+ SG_ RemainingCapacity : 16|16@1+ (0.1,0) [0|6553.5] "Ah" VCU
+ SG_ BMS_RollingCounter : 32|4@1+ (1,0) [0|15] "" VCU
+ SG_ BMS_Checksum : 36|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 772 BMS_Temperature: 8 BMS
+ SG_ MaxCellTemp : 0|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ MinCellTemp : 8|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ AvgCellTemp : 16|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ BMS_RollingCounter : 24|4@1+ (1,0) [0|15] "" VCU
+ SG_ BMS_Checksum : 28|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 773 BMS_CellInfo: 8 BMS
+ SG_ CellVoltageDiff : 0|16@1+ (0.001,0) [0|65.535] "V" VCU
+ SG_ CellCount : 16|16@1+ (1,0) [0|65535] "" VCU
+ SG_ BalancingActive : 32|1@1+ (1,0) [0|1] "" VCU
+ SG_ BMS_RollingCounter : 40|4@1+ (1,0) [0|15] "" VCU
+ SG_ BMS_Checksum : 44|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 1024 DCDC_StateFrame: 8 DCDC
+ SG_ DCDC_State : 0|8@1+ (1,0) [0|255] "" VCU
+ SG_ DCDC_FaultLevel : 8|2@1+ (1,0) [0|3] "" VCU
+ SG_ DCDC_Ready : 10|1@1+ (1,0) [0|1] "" VCU
+ SG_ DCDC_RollingCounter : 16|4@1+ (1,0) [0|15] "" VCU
+ SG_ DCDC_Checksum : 20|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 1025 DCDC_Output: 8 DCDC
+ SG_ OutputVoltage : 0|16@1+ (0.01,0) [0|655.35] "V" VCU
+ SG_ OutputCurrent : 16|16@1+ (0.01,0) [0|655.35] "A" VCU
+ SG_ OutputPower : 32|16@1+ (0.1,0) [0|6553.5] "W" VCU
+ SG_ DCDC_RollingCounter : 48|4@1+ (1,0) [0|15] "" VCU
+ SG_ DCDC_Checksum : 52|8@1+ (1,0) [0|255] "" VCU
+
+BO_ 1026 DCDC_Temperature: 8 DCDC
+ SG_ DCDC_Temp : 0|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ HeatsinkTemp : 8|8@1+ (1,-40) [-40|215] "degC" VCU
+ SG_ Efficiency : 16|8@1+ (0.5,0) [0|127.5] "%" VCU
+ SG_ DCDC_RollingCounter : 24|4@1+ (1,0) [0|15] "" VCU
+ SG_ DCDC_Checksum : 28|8@1+ (1,0) [0|255] "" VCU
+
+CM_ BU_ VCU "Vehicle Control Unit - 整车控制器";
+CM_ BU_ MCU "Motor Control Unit - 电机控制器";
+CM_ BU_ BMS "Battery Management System - 电池管理系统";
+CM_ BU_ DCDC "DC-DC Converter - 直流转换器";
+
+CM_ BO_ 256 "VCU状态帧 - 包含整车状态、电源模式、故障等级";
+CM_ BO_ 257 "VCU扭矩命令 - 目标扭矩和方向控制";
+CM_ BO_ 258 "VCU速度命令 - 目标转速和踏板位置";
+CM_ BO_ 259 "VCU电池命令 - 充放电请求和电流限制";
+CM_ BO_ 260 "VCU DCDC命令 - DCDC使能和目标输出";
+
+CM_ BO_ 512 "MCU状态帧 - 电机控制器状态和温度";
+CM_ BO_ 513 "MCU扭矩反馈 - 实际扭矩和扭矩范围";
+CM_ BO_ 514 "MCU转速反馈 - 实际转速和温度";
+CM_ BO_ 515 "MCU功率反馈 - 实际功率和效率";
+
+CM_ BO_ 768 "BMS状态帧 - 电池管理系统状态";
+CM_ BO_ 769 "BMS电压 - 总电压和单体电压";
+CM_ BO_ 770 "BMS电流 - 总电流和电流限制";
+CM_ BO_ 771 "BMS SOC - 荷电状态和健康状态";
+CM_ BO_ 772 "BMS温度 - 电池温度信息";
+CM_ BO_ 773 "BMS单体信息 - 压差和均衡状态";
+
+CM_ BO_ 1024 "DCDC状态帧 - DCDC工作状态";
+CM_ BO_ 1025 "DCDC输出 - 输出电压电流和功率";
+CM_ BO_ 1026 "DCDC温度 - 温度和效率";
+
+VAL_ 256 VCU_State 0 "Off" 1 "Init" 2 "Ready" 3 "Drive" 4 "Charge" 5 "Fault" ;
+VAL_ 256 VCU_PowerMode 0 "Off" 1 "Accessory" 2 "On" 3 "Crank" ;
+VAL_ 256 VCU_FaultLevel 0 "NoFault" 1 "Warning" 2 "Derate" 3 "Shutdown" ;
+
+VAL_ 512 MCU_State 0 "Off" 1 "Init" 2 "Ready" 3 "Drive" 4 "Fault" ;
+VAL_ 512 MCU_FaultLevel 0 "NoFault" 1 "Warning" 2 "Derate" 3 "Shutdown" ;
+
+VAL_ 768 BMS_State 0 "Off" 1 "Init" 2 "Ready" 3 "Charge" 4 "Discharge" 5 "Fault" ;
+VAL_ 768 ContactorState 0 "Open" 1 "Precharge" 2 "Closed" 3 "Welded" ;
+
+VAL_ 1024 DCDC_State 0 "Off" 1 "Init" 2 "Working" 3 "Fault" ;
+
+BA_DEF_ SG_ "GenSigStartValue" FLOAT 0 0;
+BA_DEF_DEF_ "GenSigStartValue" 0;

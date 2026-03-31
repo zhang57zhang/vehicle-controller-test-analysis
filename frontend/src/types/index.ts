@@ -53,25 +53,42 @@ export interface DBCSignal {
   scale: number
   offset: number
   comment?: string
-  message_name: string
-  dbc_file_id: number
+  start: number
+  length: number
+  byte_order: string
+  is_signed: boolean
 }
 
 export interface DBCMessage {
-  dbc_file_id: number
-  dbc_file_name: string
-  frame_id: number
   name: string
+  frame_id: number
   length: number
   cycle_time?: number
+  comment?: string
   signals: DBCSignal[]
 }
 
-export interface DBCSignalsResponse {
+export interface DBCNode {
+  dbc_file_id: number
+  dbc_file_name: string
+  name: string
   messages: DBCMessage[]
-  signals: DBCSignal[]
+}
+
+export interface DBCFileInfo {
+  id: number
+  file_name: string
+  node_count: number
+  message_count: number
+  signal_count: number
+}
+
+export interface DBCSignalsResponse {
+  nodes: DBCNode[]
+  dbc_files: DBCFileInfo[]
   signal_count: number
   message_count: number
+  node_count: number
 }
 
 export interface SignalMapping {

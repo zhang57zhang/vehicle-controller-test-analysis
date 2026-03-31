@@ -38,7 +38,7 @@ interface SignalStatistics {
   count: number
 }
 
-interface DBCSignal {
+interface DBCSignalInfo {
   name: string
   full_name: string
   unit?: string
@@ -47,18 +47,26 @@ interface DBCSignal {
   scale: number
   offset: number
   comment?: string
-  message_name: string
-  dbc_file_id: number
+  start: number
+  length: number
+  byte_order: string
+  is_signed: boolean
 }
 
-interface DBCMessage {
-  dbc_file_id: number
-  dbc_file_name: string
-  frame_id: number
+interface DBCMessageInfo {
   name: string
+  frame_id: number
   length: number
   cycle_time?: number
-  signals: DBCSignal[]
+  comment?: string
+  signals: DBCSignalInfo[]
+}
+
+interface DBCNodeInfo {
+  dbc_file_id: number
+  dbc_file_name: string
+  name: string
+  messages: DBCMessageInfo[]
 }
 
 interface Cursor {
@@ -89,6 +97,7 @@ interface SignalConfig {
   separateYAxis: boolean
   unit?: string
   messageName?: string
+  nodeName?: string
 }
 
 const DEFAULT_COLORS = [
@@ -100,7 +109,7 @@ interface OscilloscopeProps {
   data: SignalData
   signalColors?: Record<string, string>
   onZoomChange?: (zoomState: { xMin: number; xMax: number }) => void
-  dbcMessages?: DBCMessage[]
+  dbcNodes?: DBCNodeInfo[]
   showDBCMode?: boolean
 }
 
@@ -108,7 +117,7 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
   data,
   signalColors = {},
   onZoomChange,
-  dbcMessages,
+  dbcNodes,
   showDBCMode = false
 }) => {
   const chartRef = useRef<ReactECharts>(null)
@@ -167,14 +176,17 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
       return
     }
 
-    const dbcSignalMap = new Map<string, { messageName: string; unit?: string; fullName: string }>()
-    if (showDBCMode && dbcMessages && dbcMessages.length > 0) {
-      dbcMessages.forEach(msg => {
-        msg.signals.forEach(sig => {
-          dbcSignalMap.set(sig.name, {
-            messageName: msg.name,
-            unit: sig.unit,
-            fullName: sig.full_name
+    const dbcSignalMap = new Map<string, { messageName: string; nodeName: string; unit?: string; fullName: string }>()
+    if (showDBCMode && dbcNodes && dbcNodes.length > 0) {
+      dbcNodes.forEach(node => {
+        node.messages.forEach(msg => {
+          msg.signals.forEach(sig => {
+            dbcSignalMap.set(sig.name, {
+              messageName: msg.name,
+              nodeName: node.name,
+              unit: sig.unit,
+              fullName: sig.full_name
+            })
           })
         })
       })
@@ -193,11 +205,12 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
         yScale: 1,
         separateYAxis: separateYAxisMode,
         unit: dbcInfo?.unit,
-        messageName: dbcInfo?.messageName
+        messageName: dbcInfo?.messageName,
+        nodeName: dbcInfo?.nodeName
       }
     })
     setSignalConfigs(configs)
-  }, [hasValidData, signalNames, data.statistics, signalColors, separateYAxisMode, showDBCMode, dbcMessages])
+  }, [hasValidData, signalNames, data.statistics, signalColors, separateYAxisMode, showDBCMode, dbcNodes])
 
   const handleSignalToggle = (signalName: string) => {
     setSignalConfigs(prev => {
@@ -434,35 +447,59 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
     return signalConfigs.filter(c => 
       c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (c.fullName && c.fullName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (c.messageName && c.messageName.toLowerCase().includes(searchTerm.toLowerCase()))
+      (c.messageName && c.messageName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (c.nodeName && c.nodeName.toLowerCase().includes(searchTerm.toLowerCase()))
     )
   }, [signalConfigs, searchTerm])
 
-  const groupedSignals = useMemo(() => {
-    const groups: Record<string, SignalConfig[]> = {}
-    
-    if (showDBCMode && dbcMessages && dbcMessages.length > 0) {
-      dbcMessages.forEach(msg => {
-        const msgSignals = filteredSignalConfigs.filter(c => c.messageName === msg.name)
-        if (msgSignals.length > 0) {
-          groups[msg.name] = msgSignals
-        }
-      })
-      const unmatchedSignals = filteredSignalConfigs.filter(c => !c.messageName || !dbcMessages.find(m => m.name === c.messageName))
-      if (unmatchedSignals.length > 0) {
-        groups['Other'] = unmatchedSignals
-      }
-    } else {
-      filteredSignalConfigs.forEach(config => {
-        const groupKey = config.messageName || config.name.split('_')[0] || 'Other'
-        if (!groups[groupKey]) {
-          groups[groupKey] = []
-        }
-        groups[groupKey].push(config)
-      })
+  const groupedByNode = useMemo(() => {
+    if (!showDBCMode || !dbcNodes || dbcNodes.length === 0) {
+      return null
     }
+
+    const result: Record<string, Record<string, SignalConfig[]>> = {}
+    
+    dbcNodes.forEach(node => {
+      const nodeSignals: Record<string, SignalConfig[]> = {}
+      
+      node.messages.forEach(msg => {
+        const msgSignals = filteredSignalConfigs.filter(c => 
+          c.nodeName === node.name && c.messageName === msg.name
+        )
+        if (msgSignals.length > 0) {
+          nodeSignals[msg.name] = msgSignals
+        }
+      })
+      
+      if (Object.keys(nodeSignals).length > 0) {
+        result[node.name] = nodeSignals
+      }
+    })
+
+    return result
+  }, [filteredSignalConfigs, showDBCMode, dbcNodes])
+
+  const groupedSignals = useMemo(() => {
+    if (groupedByNode) {
+      const flatGroups: Record<string, SignalConfig[]> = {}
+      Object.entries(groupedByNode).forEach(([nodeName, messages]) => {
+        Object.entries(messages).forEach(([msgName, signals]) => {
+          flatGroups[`${nodeName}/${msgName}`] = signals
+        })
+      })
+      return flatGroups
+    }
+
+    const groups: Record<string, SignalConfig[]> = {}
+    filteredSignalConfigs.forEach(config => {
+      const groupKey = config.messageName || config.name.split('_')[0] || 'Other'
+      if (!groups[groupKey]) {
+        groups[groupKey] = []
+      }
+      groups[groupKey].push(config)
+    })
     return groups
-  }, [filteredSignalConfigs, showDBCMode, dbcMessages])
+  }, [filteredSignalConfigs, groupedByNode])
 
   const chartOption = useMemo(() => {
     if (!hasValidData || signalConfigs.length === 0) {
@@ -733,47 +770,106 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
         
         <ScrollArea className="flex-1">
           <div className="p-2 space-y-1">
-            {Object.entries(groupedSignals).map(([group, configs]) => (
-              <div key={group} className="mb-1">
-                <div
-                  className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-muted/50 rounded text-xs font-medium text-muted-foreground"
-                  onClick={() => setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))}
-                >
-                  {expandedGroups[group] !== false ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  <span className="font-semibold">{group}</span>
-                  <span className="ml-auto text-[10px]">({configs.length})</span>
-                </div>
-                {(expandedGroups[group] !== false) && configs.map(config => (
+            {groupedByNode ? (
+              Object.entries(groupedByNode).map(([nodeName, messages]) => (
+                <div key={nodeName} className="mb-2">
                   <div
-                    key={config.name}
-                    className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded cursor-pointer"
-                    onClick={() => handleSignalToggle(config.name)}
+                    className="flex items-center gap-1 px-2 py-1.5 cursor-pointer hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded bg-blue-100/50 dark:bg-blue-900/30 text-xs font-bold text-blue-700 dark:text-blue-300"
+                    onClick={() => setExpandedGroups(prev => ({ ...prev, [`node_${nodeName}`]: !prev[`node_${nodeName}`] }))}
                   >
-                    <Checkbox
-                      checked={config.visible}
-                      onCheckedChange={() => handleSignalToggle(config.name)}
-                      className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
-                      style={{ accentColor: config.color }}
-                    />
-                    <div
-                      className="w-3 h-3 rounded-sm flex-shrink-0"
-                      style={{ backgroundColor: config.color }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs truncate font-medium" title={config.fullName || config.name}>
-                        {config.name}
-                      </div>
-                      {config.unit && (
-                        <div className="text-[10px] text-muted-foreground truncate">
-                          {config.unit}
-                          {config.messageName && showDBCMode && ` | ${config.messageName}`}
-                        </div>
-                      )}
-                    </div>
+                    {expandedGroups[`node_${nodeName}`] !== false ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    <span>Node: {nodeName}</span>
+                    <span className="ml-auto text-[10px]">
+                      ({Object.values(messages).flat().length} signals)
+                    </span>
                   </div>
-                ))}
-              </div>
-            ))}
+                  
+                  {expandedGroups[`node_${nodeName}`] !== false && Object.entries(messages).map(([msgName, configs]) => (
+                    <div key={`${nodeName}_${msgName}`} className="ml-2 mb-1">
+                      <div
+                        className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-green-50 dark:hover:bg-green-900/20 rounded bg-green-100/30 dark:bg-green-900/20 text-xs font-medium text-green-700 dark:text-green-400"
+                        onClick={() => setExpandedGroups(prev => ({ ...prev, [`msg_${nodeName}_${msgName}`]: !prev[`msg_${nodeName}_${msgName}`] }))}
+                      >
+                        {expandedGroups[`msg_${nodeName}_${msgName}`] !== false ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        <span>Msg: {msgName}</span>
+                        <span className="ml-auto text-[10px]">({configs.length})</span>
+                      </div>
+                      
+                      {expandedGroups[`msg_${nodeName}_${msgName}`] !== false && configs.map(config => (
+                        <div
+                          key={config.name}
+                          className="flex items-center gap-2 px-3 py-1.5 hover:bg-muted/50 rounded cursor-pointer ml-2"
+                          onClick={() => handleSignalToggle(config.name)}
+                        >
+                          <Checkbox
+                            checked={config.visible}
+                            onCheckedChange={() => handleSignalToggle(config.name)}
+                            className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                            style={{ accentColor: config.color }}
+                          />
+                          <div
+                            className="w-3 h-3 rounded-sm flex-shrink-0"
+                            style={{ backgroundColor: config.color }}
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="text-xs truncate font-medium" title={config.fullName || config.name}>
+                              {config.name}
+                            </div>
+                            {config.unit && (
+                              <div className="text-[10px] text-muted-foreground truncate">
+                                {config.unit}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))
+            ) : (
+              Object.entries(groupedSignals).map(([group, configs]) => (
+                <div key={group} className="mb-1">
+                  <div
+                    className="flex items-center gap-1 px-2 py-1 cursor-pointer hover:bg-muted/50 rounded text-xs font-medium text-muted-foreground"
+                    onClick={() => setExpandedGroups(prev => ({ ...prev, [group]: !prev[group] }))}
+                  >
+                    {expandedGroups[group] !== false ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    <span className="font-semibold">{group}</span>
+                    <span className="ml-auto text-[10px]">({configs.length})</span>
+                  </div>
+                  {(expandedGroups[group] !== false) && configs.map(config => (
+                    <div
+                      key={config.name}
+                      className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded cursor-pointer"
+                      onClick={() => handleSignalToggle(config.name)}
+                    >
+                      <Checkbox
+                        checked={config.visible}
+                        onCheckedChange={() => handleSignalToggle(config.name)}
+                        className="data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        style={{ accentColor: config.color }}
+                      />
+                      <div
+                        className="w-3 h-3 rounded-sm flex-shrink-0"
+                        style={{ backgroundColor: config.color }}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs truncate font-medium" title={config.fullName || config.name}>
+                          {config.name}
+                        </div>
+                        {config.unit && (
+                          <div className="text-[10px] text-muted-foreground truncate">
+                            {config.unit}
+                            {config.messageName && showDBCMode && ` | ${config.messageName}`}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ))
+            )}
           </div>
         </ScrollArea>
       </div>

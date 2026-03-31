@@ -4,6 +4,7 @@ DBC文件解析服务
 使用cantools库解析DBC文件，提取Message和Signal定义。
 支持DBC、ARXML和XML格式的CAN数据库文件。
 """
+
 import logging
 from typing import List, Dict, Any, Optional
 from pathlib import Path
@@ -16,16 +17,19 @@ logger = logging.getLogger(__name__)
 
 class DBCParserError(Exception):
     """DBC解析错误基类"""
+
     pass
 
 
 class FileFormatError(DBCParserError):
     """文件格式错误"""
+
     pass
 
 
 class ParseError(DBCParserError):
     """解析错误"""
+
     pass
 
 
@@ -58,12 +62,11 @@ class DBCParser:
             FileFormatError: 当文件格式不支持时
         """
         ext = self.dbc_file_path.suffix.lower()
-        supported_extensions = {'.dbc', '.arxml', '.xml'}
+        supported_extensions = {".dbc", ".arxml", ".xml"}
 
         if ext not in supported_extensions:
             raise FileFormatError(
-                f"Unsupported DBC file format: {ext}. "
-                f"Supported formats: {supported_extensions}"
+                f"Unsupported DBC file format: {ext}. Supported formats: {supported_extensions}"
             )
 
         if not self.dbc_file_path.exists():
@@ -79,9 +82,7 @@ class DBCParser:
         try:
             logger.info(f"Loading DBC file: {self.dbc_file_path}")
             self.db = cantools.database.load_file(str(self.dbc_file_path))
-            logger.info(
-                f"Successfully loaded DBC file with {len(self.db.messages)} messages"
-            )
+            logger.info(f"Successfully loaded DBC file with {len(self.db.messages)} messages")
         except Exception as e:
             logger.error(f"Failed to load DBC file: {str(e)}", exc_info=True)
             raise ParseError(f"Failed to parse DBC file: {str(e)}")
@@ -109,18 +110,101 @@ class DBCParser:
         messages = []
         for msg in self.db.messages:
             message_data = {
-                'frame_id': msg.frame_id,
-                'name': msg.name,
-                'length': msg.length,
-                'cycle_time': msg.cycle_time,
-                'senders': msg.senders,
-                'comment': msg.comment if hasattr(msg, 'comment') else None,
-                'signals': self._extract_signals(msg)
+                "frame_id": msg.frame_id,
+                "name": msg.name,
+                "length": msg.length,
+                "cycle_time": msg.cycle_time,
+                "senders": list(msg.senders) if msg.senders else [],
+                "comment": msg.comment if hasattr(msg, "comment") else None,
+                "signals": self._extract_signals(msg),
             }
             messages.append(message_data)
 
         logger.info(f"Extracted {len(messages)} messages from DBC")
         return messages
+
+    def get_nodes(self) -> List[Dict[str, Any]]:
+        """
+        获取所有节点定义
+
+        Returns:
+            节点定义列表
+        """
+        if not self.db:
+            raise ParseError("DBC file not loaded. Call load() first.")
+
+        nodes = []
+        if hasattr(self.db, "nodes") and self.db.nodes:
+            for node in self.db.nodes:
+                node_data = {
+                    "name": node.name if hasattr(node, "name") else str(node),
+                    "comment": node.comment if hasattr(node, "comment") else None,
+                }
+                nodes.append(node_data)
+
+        return nodes
+
+    def get_dbc_structure(self) -> Dict[str, Any]:
+        """
+        获取DBC完整结构（Node -> Message -> Signal）
+
+        Returns:
+            DBC结构树
+        """
+        if not self.db:
+            raise ParseError("DBC file not loaded. Call load() first.")
+
+        nodes_map: Dict[str, Dict[str, Any]] = {}
+
+        for msg in self.db.messages:
+            senders = list(msg.senders) if msg.senders else ["Unknown"]
+
+            for sender in senders:
+                if sender not in nodes_map:
+                    nodes_map[sender] = {"name": sender, "messages": {}}
+
+                if msg.name not in nodes_map[sender]["messages"]:
+                    nodes_map[sender]["messages"][msg.name] = {
+                        "frame_id": msg.frame_id,
+                        "name": msg.name,
+                        "length": msg.length,
+                        "cycle_time": msg.cycle_time,
+                        "comment": msg.comment if hasattr(msg, "comment") else None,
+                        "signals": [],
+                    }
+
+                for signal in msg.signals:
+                    signal_data = {
+                        "name": signal.name,
+                        "full_name": f"{msg.name}.{signal.name}",
+                        "start": signal.start,
+                        "length": signal.length,
+                        "byte_order": signal.byte_order,
+                        "is_signed": signal.is_signed,
+                        "scale": signal.scale,
+                        "offset": signal.offset,
+                        "minimum": signal.minimum,
+                        "maximum": signal.maximum,
+                        "unit": signal.unit,
+                        "comment": signal.comment if hasattr(signal, "comment") else None,
+                    }
+                    nodes_map[sender]["messages"][msg.name]["signals"].append(signal_data)
+
+        if "Unknown" in nodes_map and len(nodes_map) > 1:
+            unknown_msgs = nodes_map.pop("Unknown")
+            for msg_name, msg_data in unknown_msgs["messages"].items():
+                for node_name in nodes_map:
+                    nodes_map[node_name]["messages"][msg_name] = msg_data
+                    break
+
+        return {
+            "nodes": list(nodes_map.values()),
+            "node_count": len(nodes_map),
+            "message_count": sum(len(n["messages"]) for n in nodes_map.values()),
+            "signal_count": sum(
+                len(m["signals"]) for n in nodes_map.values() for m in n["messages"].values()
+            ),
+        }
 
     def _extract_signals(self, message) -> List[Dict[str, Any]]:
         """
@@ -135,18 +219,18 @@ class DBCParser:
         signals = []
         for signal in message.signals:
             signal_data = {
-                'name': signal.name,
-                'start': signal.start,
-                'length': signal.length,
-                'byte_order': signal.byte_order,
-                'is_signed': signal.is_signed,
-                'scale': signal.scale,
-                'offset': signal.offset,
-                'minimum': signal.minimum,
-                'maximum': signal.maximum,
-                'unit': signal.unit,
-                'comment': signal.comment if hasattr(signal, 'comment') else None,
-                'choices': signal.choices if hasattr(signal, 'choices') else None
+                "name": signal.name,
+                "start": signal.start,
+                "length": signal.length,
+                "byte_order": signal.byte_order,
+                "is_signed": signal.is_signed,
+                "scale": signal.scale,
+                "offset": signal.offset,
+                "minimum": signal.minimum,
+                "maximum": signal.maximum,
+                "unit": signal.unit,
+                "comment": signal.comment if hasattr(signal, "comment") else None,
+                "choices": signal.choices if hasattr(signal, "choices") else None,
             }
             signals.append(signal_data)
 
@@ -171,13 +255,13 @@ class DBCParser:
         try:
             msg = self.db.get_message_by_name(message_name)
             return {
-                'frame_id': msg.frame_id,
-                'name': msg.name,
-                'length': msg.length,
-                'cycle_time': msg.cycle_time,
-                'senders': msg.senders,
-                'comment': msg.comment if hasattr(msg, 'comment') else None,
-                'signals': self._extract_signals(msg)
+                "frame_id": msg.frame_id,
+                "name": msg.name,
+                "length": msg.length,
+                "cycle_time": msg.cycle_time,
+                "senders": msg.senders,
+                "comment": msg.comment if hasattr(msg, "comment") else None,
+                "signals": self._extract_signals(msg),
             }
         except KeyError:
             logger.warning(f"Message not found: {message_name}")
@@ -202,13 +286,13 @@ class DBCParser:
         try:
             msg = self.db.get_message_by_frame_id(frame_id)
             return {
-                'frame_id': msg.frame_id,
-                'name': msg.name,
-                'length': msg.length,
-                'cycle_time': msg.cycle_time,
-                'senders': msg.senders,
-                'comment': msg.comment if hasattr(msg, 'comment') else None,
-                'signals': self._extract_signals(msg)
+                "frame_id": msg.frame_id,
+                "name": msg.name,
+                "length": msg.length,
+                "cycle_time": msg.cycle_time,
+                "senders": msg.senders,
+                "comment": msg.comment if hasattr(msg, "comment") else None,
+                "signals": self._extract_signals(msg),
             }
         except KeyError:
             logger.warning(f"Message not found for frame_id: {frame_id}")
@@ -256,25 +340,24 @@ class DBCParser:
 
         messages_summary = []
         for msg in self.db.messages:
-            messages_summary.append({
-                'frame_id': msg.frame_id,
-                'name': msg.name,
-                'signal_count': len(msg.signals),
-                'length': msg.length
-            })
+            messages_summary.append(
+                {
+                    "frame_id": msg.frame_id,
+                    "name": msg.name,
+                    "signal_count": len(msg.signals),
+                    "length": msg.length,
+                }
+            )
 
         return {
-            'file_name': self.dbc_file_path.name,
-            'message_count': len(self.db.messages),
-            'signal_count': signal_count,
-            'messages': messages_summary
+            "file_name": self.dbc_file_path.name,
+            "message_count": len(self.db.messages),
+            "signal_count": signal_count,
+            "messages": messages_summary,
         }
 
     def decode_message(
-        self,
-        frame_id: int,
-        data: bytes,
-        allow_truncated: bool = False
+        self, frame_id: int, data: bytes, allow_truncated: bool = False
     ) -> Dict[str, Any]:
         """
         解码CAN消息
@@ -342,4 +425,4 @@ def get_message_signals(dbc_file_path: str, message_name: str) -> List[Dict[str,
     if not message:
         return []
 
-    return message['signals']
+    return message["signals"]
