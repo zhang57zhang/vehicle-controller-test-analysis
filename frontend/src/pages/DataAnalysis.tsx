@@ -56,21 +56,6 @@ type ToastMessage = {
   message: string
 }
 
-interface AnalysisConfig {
-  test_data_id?: number
-  sampling_rate?: number
-  interpolation_method?: 'linear' | 'spline' | 'step'
-}
-
-interface AnalysisResult {
-  id: number
-  indicator_id: string
-  indicator_name: string
-  result_value: number | string | object
-  result_status: 'pass' | 'warning' | 'fail' | 'error'
-  calculated_at: string
-}
-
 interface SignalSummary {
   min: number
   max: number
@@ -81,7 +66,17 @@ interface SignalSummary {
 
 const DataAnalysis: React.FC = () => {
   const navigate = useNavigate()
-  const { currentProject } = useProjectStore()
+  const { 
+    currentProject, 
+    analysisConfig, 
+    analysisResults, 
+    signalSummary,
+    hasAnalyzed,
+    setAnalysisConfig,
+    setAnalysisResults,
+    setSignalSummary,
+    setHasAnalyzed
+  } = useProjectStore()
 
   const [toasts, setToasts] = useState<ToastMessage[]>([])
 
@@ -102,16 +97,8 @@ const DataAnalysis: React.FC = () => {
   const [customSignals, setCustomSignals] = useState<CustomSignal[]>([])
   const [loadingCustomSignals, setLoadingCustomSignals] = useState(false)
 
-  const [analysisConfig, setAnalysisConfig] = useState<AnalysisConfig>({
-    sampling_rate: 100,
-    interpolation_method: 'linear',
-  })
-
-  const [analysisResults, setAnalysisResults] = useState<AnalysisResult[]>([])
   const [analyzing, setAnalyzing] = useState(false)
-  const [hasAnalyzed, setHasAnalyzed] = useState(false)
 
-  const [signalSummary, setSignalSummary] = useState<Record<string, SignalSummary>>({})
   const [selectedChartSignal, setSelectedChartSignal] = useState<string>('')
   const [availableSignals, setAvailableSignals] = useState<string[]>([])
   const [oscilloscopeData, setOscilloscopeData] = useState<{
@@ -533,7 +520,7 @@ const DataAnalysis: React.FC = () => {
                 <Select
                   value={analysisConfig.test_data_id ? String(analysisConfig.test_data_id) : ''}
                   onValueChange={(value) =>
-                    setAnalysisConfig({ ...analysisConfig, test_data_id: parseInt(value, 10) })
+                    setAnalysisConfig({ test_data_id: parseInt(value, 10) })
                   }
                 >
                   <SelectTrigger>
@@ -565,10 +552,7 @@ const DataAnalysis: React.FC = () => {
                     type="number"
                     value={analysisConfig.sampling_rate}
                     onChange={(e) =>
-                      setAnalysisConfig({
-                        ...analysisConfig,
-                        sampling_rate: parseInt(e.target.value) || 100,
-                      })
+                      setAnalysisConfig({ sampling_rate: parseInt(e.target.value) || 100 })
                     }
                     min={1}
                     max={10000}
@@ -579,7 +563,7 @@ const DataAnalysis: React.FC = () => {
                   <Select
                     value={analysisConfig.interpolation_method}
                     onValueChange={(value: 'linear' | 'spline' | 'step') =>
-                      setAnalysisConfig({ ...analysisConfig, interpolation_method: value })
+                      setAnalysisConfig({ interpolation_method: value })
                     }
                   >
                     <SelectTrigger id="interpolation_method">
@@ -610,9 +594,22 @@ const DataAnalysis: React.FC = () => {
             <Card>
               <CardHeader>
                 <CardTitle>分析结果</CardTitle>
-                <CardDescription>{analysisResults.length} 个分析指标</CardDescription>
+                <CardDescription>
+                  {analysisResults.length} 个分析指标 | 
+                  通过: {analysisResults.filter(r => r.result_status === 'pass').length} | 
+                  警告: {analysisResults.filter(r => r.result_status === 'warning').length} | 
+                  失败: {analysisResults.filter(r => r.result_status === 'fail').length}
+                </CardDescription>
               </CardHeader>
               <CardContent>
+                <div className="mb-4 p-3 bg-muted/30 rounded-lg text-sm">
+                  <div className="font-medium mb-2">判断基准说明：</div>
+                  <div className="grid grid-cols-3 gap-4 text-muted-foreground">
+                    <div><span className="inline-block w-3 h-3 rounded-full bg-green-500 mr-2"></span>通过: 数据正常，无异常</div>
+                    <div><span className="inline-block w-3 h-3 rounded-full bg-yellow-500 mr-2"></span>警告: 通过率≥95%，存在少量异常</div>
+                    <div><span className="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>失败: 通过率&lt;95%，存在较多异常</div>
+                  </div>
+                </div>
                 <div className="grid md:grid-cols-2 gap-4">
                   <div>
                     <h4 className="text-sm font-medium mb-2">结果分布</h4>
@@ -635,34 +632,60 @@ const DataAnalysis: React.FC = () => {
                     <TableHeader>
                       <TableRow>
                         <TableHead>指标名称</TableHead>
-                        <TableHead>结果值</TableHead>
+                        <TableHead>结果详情</TableHead>
+                        <TableHead>判断依据</TableHead>
                         <TableHead>状态</TableHead>
                         <TableHead>计算时间</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {analysisResults.map((result) => (
-                        <TableRow key={result.id}>
-                          <TableCell className="font-medium">{result.indicator_name}</TableCell>
-                          <TableCell>{typeof result.result_value === 'object' ? JSON.stringify(result.result_value).slice(0, 50) : result.result_value}</TableCell>
-                          <TableCell>
-                            <span
-                              className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
-                                result.result_status === 'pass'
-                                  ? 'bg-green-500/10 text-green-500'
-                                  : result.result_status === 'warning'
-                                  ? 'bg-yellow-500/10 text-yellow-500'
-                                  : 'bg-red-500/10 text-red-500'
-                              }`}
-                            >
-                              {result.result_status.toUpperCase()}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
-                            {formatDate(result.calculated_at)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
+                      {analysisResults.map((result) => {
+                        const resultValue = result.result_value as Record<string, any> | null
+                        const passRate = resultValue?.pass_rate
+                        const indicatorType = resultValue?.indicator_type || result.indicator_name?.split('_')[0]
+                        
+                        let criteriaText = '-'
+                        if (indicatorType === 'statistics') {
+                          criteriaText = '统计指标：计算信号的基本统计量'
+                        } else if (indicatorType === 'range') {
+                          criteriaText = resultValue?.notes || '范围检查：验证信号是否在指定范围内'
+                        } else if (passRate !== undefined) {
+                          criteriaText = `通过率: ${passRate.toFixed(1)}%`
+                        }
+                        
+                        return (
+                          <TableRow key={result.id}>
+                            <TableCell className="font-medium">{result.indicator_name}</TableCell>
+                            <TableCell className="max-w-[200px]">
+                              {resultValue ? (
+                                <div className="text-xs space-y-0.5">
+                                  {resultValue.min !== undefined && <div>最小: {resultValue.min?.toFixed(4)}</div>}
+                                  {resultValue.max !== undefined && <div>最大: {resultValue.max?.toFixed(4)}</div>}
+                                  {resultValue.mean !== undefined && <div>均值: {resultValue.mean?.toFixed(4)}</div>}
+                                  {resultValue.std !== undefined && <div>标准差: {resultValue.std?.toFixed(4)}</div>}
+                                </div>
+                              ) : typeof result.result_value === 'string' ? result.result_value : '-'}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">{criteriaText}</TableCell>
+                            <TableCell>
+                              <span
+                                className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                                  result.result_status === 'pass'
+                                    ? 'bg-green-500/10 text-green-500'
+                                    : result.result_status === 'warning'
+                                    ? 'bg-yellow-500/10 text-yellow-500'
+                                    : 'bg-red-500/10 text-red-500'
+                                }`}
+                              >
+                                {result.result_status.toUpperCase()}
+                              </span>
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {formatDate(result.calculated_at)}
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
                     </TableBody>
                   </Table>
                 </div>

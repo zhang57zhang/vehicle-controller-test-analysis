@@ -166,18 +166,38 @@ const Oscilloscope: React.FC<OscilloscopeProps> = ({
       setSignalConfigs([])
       return
     }
-    const configs: SignalConfig[] = signalNames.map((name, index) => ({
-      name,
-      color: signalColors[name] || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
-      visible: false,
-      yMin: data.statistics?.[name]?.min ?? 0,
-      yMax: data.statistics?.[name]?.max ?? 1,
-      yOffset: 0,
-      yScale: 1,
-      separateYAxis: separateYAxisMode
-    }))
+
+    const dbcSignalMap = new Map<string, { messageName: string; unit?: string; fullName: string }>()
+    if (showDBCMode && dbcMessages && dbcMessages.length > 0) {
+      dbcMessages.forEach(msg => {
+        msg.signals.forEach(sig => {
+          dbcSignalMap.set(sig.name, {
+            messageName: msg.name,
+            unit: sig.unit,
+            fullName: sig.full_name
+          })
+        })
+      })
+    }
+
+    const configs: SignalConfig[] = signalNames.map((name, index) => {
+      const dbcInfo = dbcSignalMap.get(name)
+      return {
+        name,
+        fullName: dbcInfo?.fullName || name,
+        color: signalColors[name] || DEFAULT_COLORS[index % DEFAULT_COLORS.length],
+        visible: false,
+        yMin: data.statistics?.[name]?.min ?? 0,
+        yMax: data.statistics?.[name]?.max ?? 1,
+        yOffset: 0,
+        yScale: 1,
+        separateYAxis: separateYAxisMode,
+        unit: dbcInfo?.unit,
+        messageName: dbcInfo?.messageName
+      }
+    })
     setSignalConfigs(configs)
-  }, [signalNames, data.statistics, signalColors, separateYAxisMode, hasValidData])
+  }, [hasValidData, signalNames, data.statistics, signalColors, separateYAxisMode, showDBCMode, dbcMessages])
 
   const handleSignalToggle = (signalName: string) => {
     setSignalConfigs(prev => {
